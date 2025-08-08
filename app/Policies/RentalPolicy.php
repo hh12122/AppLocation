@@ -8,59 +8,82 @@ use Illuminate\Auth\Access\Response;
 
 class RentalPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Rental $rental): bool
     {
-        return false;
+        return $user->id === $rental->renter_id || 
+               $user->id === $rental->vehicle->owner_id;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Rental $rental): bool
     {
-        return false;
+        return $user->id === $rental->vehicle->owner_id && 
+               in_array($rental->status, ['pending', 'confirmed']);
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Rental $rental): bool
     {
-        return false;
+        return $user->id === $rental->renter_id && 
+               $rental->status === 'pending';
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
     public function restore(User $user, Rental $rental): bool
     {
         return false;
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
     public function forceDelete(User $user, Rental $rental): bool
     {
+        return false;
+    }
+
+    public function cancel(User $user, Rental $rental): bool
+    {
+        return ($user->id === $rental->renter_id || $user->id === $rental->vehicle->owner_id) &&
+               in_array($rental->status, ['pending', 'confirmed']);
+    }
+
+    public function confirm(User $user, Rental $rental): bool
+    {
+        return $user->id === $rental->vehicle->owner_id && 
+               $rental->status === 'pending';
+    }
+
+    public function pickup(User $user, Rental $rental): bool
+    {
+        return $user->id === $rental->vehicle->owner_id && 
+               $rental->status === 'confirmed';
+    }
+
+    public function return(User $user, Rental $rental): bool
+    {
+        return $user->id === $rental->vehicle->owner_id && 
+               $rental->status === 'active';
+    }
+
+    public function review(User $user, Rental $rental): bool
+    {
+        if ($rental->status !== 'completed') {
+            return false;
+        }
+
+        if ($user->id === $rental->renter_id || $user->id === $rental->vehicle->owner_id) {
+            $existingReview = \App\Models\Review::where('rental_id', $rental->id)
+                ->where('reviewer_id', $user->id)
+                ->exists();
+            
+            return !$existingReview;
+        }
+
         return false;
     }
 }

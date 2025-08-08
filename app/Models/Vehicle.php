@@ -12,38 +12,51 @@ class Vehicle extends Model
         'owner_id',
         'brand',
         'model',
+        'vehicle_type',
         'year',
         'color',
         'license_plate',
         'mileage',
         'fuel_type',
+        'engine_size',
+        'fuel_consumption',
         'transmission',
         'seats',
         'doors',
         'description',
         'features',
+        'has_insurance',
+        'instant_booking',
+        'min_rental_days',
+        'max_rental_days',
         'daily_rate',
         'weekly_rate',
         'monthly_rate',
         'address',
         'city',
         'postal_code',
+        'pickup_location',
         'latitude',
         'longitude',
         'status',
         'is_available',
+        'availability_schedule',
     ];
 
     protected function casts(): array
     {
         return [
             'features' => 'array',
+            'availability_schedule' => 'array',
             'daily_rate' => 'decimal:2',
             'weekly_rate' => 'decimal:2',
             'monthly_rate' => 'decimal:2',
+            'fuel_consumption' => 'decimal:2',
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
             'is_available' => 'boolean',
+            'has_insurance' => 'boolean',
+            'instant_booking' => 'boolean',
             'rating' => 'decimal:2',
         ];
     }
@@ -67,6 +80,18 @@ class Vehicle extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class)->where('type', 'vehicle');
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favorites')
+            ->withPivot('notes', 'created_at')
+            ->withTimestamps();
     }
 
     // Helpers
@@ -119,5 +144,56 @@ class Vehicle extends Model
         }
 
         return $days * $this->daily_rate;
+    }
+
+    // Query Scopes for performance optimization
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active')->where('is_available', true);
+    }
+
+    public function scopeWithBasicRelations($query)
+    {
+        return $query->with([
+            'owner:id,name,rating',
+            'images' => function ($q) {
+                $q->select('id', 'vehicle_id', 'image_path', 'is_primary', 'sort_order')
+                  ->where('is_primary', true)
+                  ->orWhere(function($query) {
+                      $query->orderBy('sort_order')->limit(1);
+                  });
+            }
+        ]);
+    }
+
+    public function scopeWithReviewStats($query)
+    {
+        return $query->withCount('reviews')->withAvg('reviews', 'rating');
+    }
+
+    public function scopeAvailableForDates($query, $startDate, $endDate)
+    {
+        return $query->whereDoesntHave('rentals', function ($q) use ($startDate, $endDate) {
+            $q->whereIn('status', ['confirmed', 'active'])
+              ->where(function ($subQuery) use ($startDate, $endDate) {
+                  $subQuery->whereBetween('start_date', [$startDate, $endDate])
+                      ->orWhereBetween('end_date', [$startDate, $endDate])
+                      ->orWhere(function ($nestedQuery) use ($startDate, $endDate) {
+                          $nestedQuery->where('start_date', '<=', $startDate)
+                                     ->where('end_date', '>=', $endDate);
+                      });
+              });
+        });
+    }
+
+    public function scopeNearLocation($query, $lat, $lng, $radius)
+    {
+        return $query->selectRaw("*, 
+            (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * 
+            cos(radians(longitude) - radians(?)) + 
+            sin(radians(?)) * sin(radians(latitude)))) AS distance", 
+            [$lat, $lng, $lat])
+            ->having('distance', '<=', $radius)
+            ->orderBy('distance');
     }
 }

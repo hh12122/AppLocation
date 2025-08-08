@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Button } from '@/components/ui/button'
+import AvailabilityCalendar from '@/components/AvailabilityCalendar.vue'
+import FavoriteButton from '@/components/FavoriteButton.vue'
+import InteractiveMap from '@/components/InteractiveMap.vue'
+import NavigationModal from '@/components/NavigationModal.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Navigation, MapPin } from 'lucide-vue-next'
 
 interface Vehicle {
     id: number
@@ -26,6 +31,8 @@ interface Vehicle {
     address: string
     city: string
     postal_code: string
+    latitude?: number
+    longitude?: number
     rating: number
     rating_count: number
     rental_count: number
@@ -51,15 +58,23 @@ interface Vehicle {
     }>
 }
 
+interface Booking {
+    start_date: string
+    end_date: string
+    status: string
+}
+
 interface Props {
     vehicle: Vehicle
     canRent: boolean
+    bookings?: Booking[]
+    isFavorited?: boolean
 }
 
 const props = defineProps<Props>()
 
 const currentImageIndex = ref(0)
-const showAllImages = ref(false)
+const showNavigationModal = ref(false)
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -101,6 +116,38 @@ const prevImage = () => {
         ? props.vehicle.images.length - 1 
         : currentImageIndex.value - 1
 }
+
+const mapCenter = computed(() => {
+    if (props.vehicle.latitude && props.vehicle.longitude) {
+        return {
+            latitude: props.vehicle.latitude,
+            longitude: props.vehicle.longitude
+        }
+    }
+    // Default to Paris center if no coordinates
+    return { latitude: 48.8566, longitude: 2.3522 }
+})
+
+const mapMarkers = computed(() => {
+    if (!props.vehicle.latitude || !props.vehicle.longitude) {
+        return []
+    }
+    
+    return [{
+        id: `vehicle-${props.vehicle.id}`,
+        latitude: props.vehicle.latitude,
+        longitude: props.vehicle.longitude,
+        title: `${props.vehicle.year} ${props.vehicle.brand} ${props.vehicle.model}`,
+        description: `${formatPrice(props.vehicle.daily_rate)}/jour - ${props.vehicle.city}`,
+        popup: `
+            <div class="text-center">
+                <h3 class="font-semibold text-lg mb-2">${props.vehicle.year} ${props.vehicle.brand} ${props.vehicle.model}</h3>
+                <p class="text-green-600 font-semibold mb-2">${formatPrice(props.vehicle.daily_rate)}/jour</p>
+                <p class="text-sm text-gray-600">${props.vehicle.address}</p>
+            </div>
+        `
+    }]
+})
 </script>
 
 <template>
@@ -210,6 +257,55 @@ const prevImage = () => {
                             </CardContent>
                         </Card>
 
+                        <!-- Availability Calendar -->
+                        <Card class="mt-6">
+                            <CardHeader>
+                                <CardTitle>Disponibilité</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <AvailabilityCalendar
+                                    :vehicle-id="vehicle.id"
+                                    :daily-rate="vehicle.daily_rate"
+                                    :weekly-rate="vehicle.weekly_rate"
+                                    :monthly-rate="vehicle.monthly_rate"
+                                    :bookings="bookings"
+                                />
+                            </CardContent>
+                        </Card>
+
+                        <!-- Location Map -->
+                        <Card v-if="vehicle.latitude && vehicle.longitude" class="mt-6">
+                            <CardHeader class="flex flex-row items-center justify-between">
+                                <CardTitle>Localisation</CardTitle>
+                                <Button
+                                    @click="showNavigationModal = true"
+                                    size="sm"
+                                    variant="outline"
+                                    class="gap-2"
+                                >
+                                    <Navigation class="w-4 h-4" />
+                                    Itinéraire
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <InteractiveMap
+                                    :center="mapCenter"
+                                    :markers="mapMarkers"
+                                    :height="'300px'"
+                                    :zoom="15"
+                                    :clickable="false"
+                                    :draggable="true"
+                                    :scroll-wheel-zoom="true"
+                                />
+                                <div class="flex items-center justify-between mt-3">
+                                    <p class="text-sm text-gray-600">
+                                        <MapPin class="w-4 h-4 inline mr-1" />
+                                        {{ vehicle.address }}, {{ vehicle.postal_code }} {{ vehicle.city }}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <!-- Reviews -->
                         <Card v-if="vehicle.reviews.length > 0" class="mt-6">
                             <CardHeader>
@@ -241,18 +337,30 @@ const prevImage = () => {
                     <div class="lg:col-span-1">
                         <Card class="sticky top-6">
                             <CardHeader>
-                                <CardTitle class="text-2xl">
-                                    {{ vehicle.year }} {{ vehicle.brand }} {{ vehicle.model }}
-                                </CardTitle>
-                                <div class="flex items-center gap-4 text-sm text-gray-600">
-                                    <div class="flex items-center">
-                                        <span class="mr-1">⭐</span>
-                                        {{ vehicle.rating || 'N/A' }}
-                                        <span v-if="vehicle.rating_count" class="ml-1">
-                                            ({{ vehicle.rating_count }} avis)
-                                        </span>
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <CardTitle class="text-2xl">
+                                            {{ vehicle.year }} {{ vehicle.brand }} {{ vehicle.model }}
+                                        </CardTitle>
+                                        <div class="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                                            <div class="flex items-center">
+                                                <span class="mr-1">⭐</span>
+                                                {{ vehicle.rating || 'N/A' }}
+                                                <span v-if="vehicle.rating_count" class="ml-1">
+                                                    ({{ vehicle.rating_count }} avis)
+                                                </span>
+                                            </div>
+                                            <div>{{ vehicle.rental_count }} locations</div>
+                                        </div>
                                     </div>
-                                    <div>{{ vehicle.rental_count }} locations</div>
+                                    <div v-if="$page.props.auth.user">
+                                        <FavoriteButton 
+                                            :vehicle-id="vehicle.id" 
+                                            :initial-is-favorited="isFavorited || false"
+                                            :show-text="true"
+                                            size="lg"
+                                        />
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent class="space-y-4">
@@ -304,7 +412,17 @@ const prevImage = () => {
 
                                 <!-- Location -->
                                 <div>
-                                    <span class="font-medium">Localisation:</span><br>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-medium">Localisation:</span>
+                                        <button
+                                            v-if="vehicle.latitude && vehicle.longitude"
+                                            @click="showNavigationModal = true"
+                                            class="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                        >
+                                            <Navigation class="w-3 h-3" />
+                                            Itinéraire
+                                        </button>
+                                    </div>
                                     <span class="text-sm text-gray-600">
                                         {{ vehicle.address }}<br>
                                         {{ vehicle.postal_code }} {{ vehicle.city }}
@@ -367,5 +485,23 @@ const prevImage = () => {
                 </div>
             </div>
         </div>
+        
+        <!-- Navigation Modal -->
+        <NavigationModal
+            v-if="vehicle.latitude && vehicle.longitude"
+            :open="showNavigationModal"
+            @update:open="showNavigationModal = $event"
+            :destination="{
+                latitude: vehicle.latitude,
+                longitude: vehicle.longitude,
+                address: vehicle.address,
+                name: `${vehicle.year} ${vehicle.brand} ${vehicle.model}`
+            }"
+            :vehicle-info="{
+                brand: vehicle.brand,
+                model: vehicle.model,
+                year: vehicle.year
+            }"
+        />
     </AppLayout>
 </template>

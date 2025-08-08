@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import InputError from '@/components/InputError.vue'
+import LocationPicker from '@/components/LocationPicker.vue'
 
 const imageFiles = ref<File[]>([])
 const imagePreviewUrls = ref<string[]>([])
@@ -30,7 +31,15 @@ const form = useForm({
     address: '',
     city: '',
     postal_code: '',
+    latitude: 0,
+    longitude: 0,
     images: [] as File[]
+})
+
+const location = ref<{ latitude: number; longitude: number; address: string }>({
+    latitude: 0,
+    longitude: 0,
+    address: ''
 })
 
 const availableFeatures = [
@@ -96,6 +105,29 @@ const toggleFeature = (feature: string) => {
         form.features.splice(index, 1)
     } else {
         form.features.push(feature)
+    }
+}
+
+const onLocationUpdate = (newLocation: { latitude: number; longitude: number; address: string }) => {
+    location.value = newLocation
+    form.latitude = newLocation.latitude
+    form.longitude = newLocation.longitude
+    form.address = newLocation.address
+    
+    // Extract city and postal code from address if possible
+    const addressParts = newLocation.address.split(', ')
+    if (addressParts.length > 2) {
+        const lastPart = addressParts[addressParts.length - 1]
+        const secondLastPart = addressParts[addressParts.length - 2]
+        
+        // Try to extract postal code and city
+        const postalCodeMatch = secondLastPart.match(/\b\d{5}\b/)
+        if (postalCodeMatch) {
+            form.postal_code = postalCodeMatch[0]
+            form.city = secondLastPart.replace(postalCodeMatch[0], '').trim()
+        } else {
+            form.city = secondLastPart
+        }
     }
 }
 
@@ -293,38 +325,40 @@ const submit = () => {
                             </div>
 
                             <!-- Location -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="md:col-span-2">
-                                    <Label for="address">Adresse *</Label>
-                                    <Input 
-                                        id="address"
-                                        v-model="form.address"
-                                        placeholder="Ex: 123 Rue de la Paix"
-                                        required
-                                    />
-                                    <InputError :message="form.errors.address" />
-                                </div>
-
-                                <div>
-                                    <Label for="postal_code">Code postal *</Label>
-                                    <Input 
-                                        id="postal_code"
-                                        v-model="form.postal_code"
-                                        placeholder="Ex: 75001"
-                                        required
-                                    />
-                                    <InputError :message="form.errors.postal_code" />
-                                </div>
-
-                                <div>
-                                    <Label for="city">Ville *</Label>
-                                    <Input 
-                                        id="city"
-                                        v-model="form.city"
-                                        placeholder="Ex: Paris"
-                                        required
-                                    />
-                                    <InputError :message="form.errors.city" />
+                            <div>
+                                <LocationPicker
+                                    v-model="location"
+                                    label="Localisation du véhicule *"
+                                    placeholder="Recherchez l'adresse ou cliquez sur la carte"
+                                    required
+                                    @update:model-value="onLocationUpdate"
+                                />
+                                <InputError :message="form.errors.address" />
+                                <InputError :message="form.errors.latitude" />
+                                <InputError :message="form.errors.longitude" />
+                                
+                                <!-- Additional location fields for user verification -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <Label for="city">Ville (auto-remplie) *</Label>
+                                        <Input 
+                                            id="city"
+                                            v-model="form.city"
+                                            placeholder="Ex: Paris"
+                                            required
+                                        />
+                                        <InputError :message="form.errors.city" />
+                                    </div>
+                                    <div>
+                                        <Label for="postal_code">Code postal (auto-rempli) *</Label>
+                                        <Input 
+                                            id="postal_code"
+                                            v-model="form.postal_code"
+                                            placeholder="Ex: 75001"
+                                            required
+                                        />
+                                        <InputError :message="form.errors.postal_code" />
+                                    </div>
                                 </div>
                             </div>
 

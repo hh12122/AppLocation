@@ -38,7 +38,23 @@ class RentalController extends Controller
 
     public function create(Request $request, Vehicle $vehicle)
     {
-        abort_if(!auth()->user()->canRent(), 403, 'Vous devez vérifier votre compte pour louer un véhicule.');
+        $user = auth()->user();
+        
+        if (!$user->canRent()) {
+            if (!$user->driving_license_number || !$user->driving_license_expiry) {
+                return redirect()->route('license.verification')
+                    ->with('warning', 'Vous devez fournir les informations de votre permis de conduire avant de pouvoir louer un véhicule.');
+            }
+            if ($user->driving_license_expiry < now()) {
+                return redirect()->route('license.verification')
+                    ->with('error', 'Votre permis de conduire a expiré. Veuillez le mettre à jour.');
+            }
+            if ($user->driving_license_status === 'rejected') {
+                return redirect()->route('license.verification')
+                    ->with('error', 'Votre permis de conduire a été rejeté. Veuillez soumettre des documents valides.');
+            }
+        }
+        
         abort_if($vehicle->owner_id === auth()->id(), 403, 'Vous ne pouvez pas louer votre propre véhicule.');
         abort_if(!$vehicle->is_available || $vehicle->status !== 'active', 403, 'Ce véhicule n\'est pas disponible.');
 

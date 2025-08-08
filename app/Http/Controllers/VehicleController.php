@@ -6,63 +6,169 @@ use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 
 class VehicleController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Vehicle::with(['owner', 'images'])
-            ->where('status', 'active')
-            ->where('is_available', true);
+        $query = Vehicle::active()
+            ->withBasicRelations()
+            ->withReviewStats();
 
-        // Filters
-        if ($request->has('brand') && $request->brand) {
-            $query->where('brand', 'like', '%' . $request->brand . '%');
-        }
-
-        if ($request->has('city') && $request->city) {
-            $query->where('city', 'like', '%' . $request->city . '%');
-        }
-
-        if ($request->has('fuel_type') && $request->fuel_type) {
-            $query->where('fuel_type', $request->fuel_type);
-        }
-
-        if ($request->has('transmission') && $request->transmission) {
-            $query->where('transmission', $request->transmission);
-        }
-
-        if ($request->has('min_seats') && $request->min_seats) {
-            $query->where('seats', '>=', $request->min_seats);
-        }
-
-        if ($request->has('max_price') && $request->max_price) {
-            $query->where('daily_rate', '<=', $request->max_price);
-        }
-
-        // Check availability for specific dates
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $startDate = $request->start_date;
-            $endDate = $request->end_date;
-            
-            $query->whereDoesntHave('rentals', function ($q) use ($startDate, $endDate) {
-                $q->whereIn('status', ['confirmed', 'active'])
-                  ->where(function ($subQuery) use ($startDate, $endDate) {
-                      $subQuery->whereBetween('start_date', [$startDate, $endDate])
-                          ->orWhereBetween('end_date', [$startDate, $endDate])
-                          ->orWhere(function ($nestedQuery) use ($startDate, $endDate) {
-                              $nestedQuery->where('start_date', '<=', $startDate)
-                                         ->where('end_date', '>=', $endDate);
-                          });
-                  });
+        // Basic Filters
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('brand', 'like', '%' . $search . '%')
+                  ->orWhere('model', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
             });
         }
 
-        $vehicles = $query->orderBy('created_at', 'desc')->paginate(12);
+        if ($request->filled('brand')) {
+            $query->where('brand', $request->brand);
+        }
+
+        if ($request->filled('city')) {
+            $query->where('city', $request->city);
+        }
+
+        if ($request->filled('fuel_type')) {
+            $query->whereIn('fuel_type', (array)$request->fuel_type);
+        }
+
+        if ($request->filled('transmission')) {
+            $query->whereIn('transmission', (array)$request->transmission);
+        }
+
+        // Range Filters
+        if ($request->filled('min_seats')) {
+            $query->where('seats', '>=', $request->min_seats);
+        }
+
+        if ($request->filled('max_seats')) {
+            $query->where('seats', '<=', $request->max_seats);
+        }
+
+        if ($request->filled('min_price')) {
+            $query->where('daily_rate', '>=', $request->min_price);
+        }
+
+        if ($request->filled('max_price')) {
+            $query->where('daily_rate', '<=', $request->max_price);
+        }
+
+        if ($request->filled('min_year')) {
+            $query->where('year', '>=', $request->min_year);
+        }
+
+        if ($request->filled('max_year')) {
+            $query->where('year', '<=', $request->max_year);
+        }
+
+        // Advanced Filters
+        if ($request->filled('min_rating')) {
+            $query->having('reviews_avg_rating', '>=', $request->min_rating);
+        }
+
+        if ($request->filled('features')) {
+            $features = (array)$request->features;
+            foreach ($features as $feature) {
+                $query->whereJsonContains('features', $feature);
+            }
+        }
+
+        if ($request->filled('doors')) {
+            $query->whereIn('doors', (array)$request->doors);
+        }
+
+        if ($request->filled('color')) {
+            $query->whereIn('color', (array)$request->color);
+        }
+
+        if ($request->filled('vehicle_type')) {
+            $query->where('vehicle_type', $request->vehicle_type);
+        }
+
+        if ($request->filled('max_mileage')) {
+            $query->where('mileage', '<=', $request->max_mileage);
+        }
+
+        if ($request->filled('has_insurance')) {
+            $query->where('has_insurance', true);
+        }
+
+        if ($request->filled('instant_booking')) {
+            $query->where('instant_booking', true);
+        }
+
+        if ($request->filled('min_rental_days')) {
+            $query->where('min_rental_days', '<=', $request->min_rental_days);
+        }
+
+        // Location-based search (distance from coordinates)
+        if ($request->filled('latitude') && $request->filled('longitude') && $request->filled('radius')) {
+            $query->nearLocation($request->latitude, $request->longitude, $request->radius);
+        }
+
+        // Check availability for specific dates
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->availableForDates($request->start_date, $request->end_date);
+        }
+
+        // Sorting
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortOrder = $request->input('sort_order', 'desc');
+        
+        switch ($sortBy) {
+            case 'price_low':
+                $query->orderBy('daily_rate', 'asc');
+                break;
+            case 'price_high':
+                $query->orderBy('daily_rate', 'desc');
+                break;
+            case 'rating':
+                $query->orderBy('reviews_avg_rating', 'desc');
+                break;
+            case 'reviews':
+                $query->orderBy('reviews_count', 'desc');
+                break;
+            case 'year':
+                $query->orderBy('year', 'desc');
+                break;
+            default:
+                $query->orderBy($sortBy, $sortOrder);
+        }
+
+        $vehicles = $query->paginate(12)->withQueryString();
+
+        // Get filter options for UI with caching
+        $filterOptions = Cache::remember('vehicle_filter_options', 3600, function () {
+            return [
+                'brands' => Vehicle::where('status', 'active')->distinct()->pluck('brand'),
+                'cities' => Vehicle::where('status', 'active')->distinct()->pluck('city'),
+                'colors' => Vehicle::where('status', 'active')->distinct()->pluck('color'),
+                'vehicle_types' => Vehicle::where('status', 'active')->whereNotNull('vehicle_type')->distinct()->pluck('vehicle_type'),
+                'features' => ['GPS', 'Climatisation', 'Bluetooth', 'Caméra de recul', 'Régulateur de vitesse', 'Sièges chauffants', 'Toit ouvrant', 'Parking assisté'],
+                'fuel_types' => ['gasoline', 'diesel', 'electric', 'hybrid'],
+                'transmissions' => ['manual', 'automatic'],
+            ];
+        });
+
+        // Get user's favorited vehicle IDs if authenticated
+        $favoritedVehicleIds = [];
+        if (auth()->check()) {
+            $favoritedVehicleIds = auth()->user()->favorites()
+                ->pluck('vehicle_id')
+                ->toArray();
+        }
 
         return Inertia::render('Vehicles/Index', [
             'vehicles' => $vehicles,
-            'filters' => $request->only(['brand', 'city', 'fuel_type', 'transmission', 'min_seats', 'max_price', 'start_date', 'end_date'])
+            'filters' => $request->all(),
+            'filterOptions' => $filterOptions,
+            'favoritedVehicleIds' => $favoritedVehicleIds
         ]);
     }
 
@@ -113,6 +219,9 @@ class VehicleController extends Controller
             }
         }
 
+        // Clear cache when new vehicle is added
+        Cache::forget('vehicle_filter_options');
+
         return redirect()->route('vehicles.show', $vehicle)
             ->with('success', 'Véhicule ajouté avec succès !');
     }
@@ -121,9 +230,24 @@ class VehicleController extends Controller
     {
         $vehicle->load(['owner', 'images', 'reviews.reviewer']);
         
+        // Get vehicle bookings for the calendar
+        $bookings = $vehicle->rentals()
+            ->whereIn('status', ['confirmed', 'active'])
+            ->where('end_date', '>=', now())
+            ->select('start_date', 'end_date', 'status')
+            ->get();
+        
+        // Check if vehicle is favorited by current user
+        $isFavorited = false;
+        if (auth()->check()) {
+            $isFavorited = auth()->user()->hasFavorited($vehicle);
+        }
+
         return Inertia::render('Vehicles/Show', [
             'vehicle' => $vehicle,
-            'canRent' => auth()->check() && auth()->user()->canRent() && $vehicle->owner_id !== auth()->id()
+            'bookings' => $bookings,
+            'canRent' => auth()->check() && auth()->user()->canRent() && $vehicle->owner_id !== auth()->id(),
+            'isFavorited' => $isFavorited
         ]);
     }
 
@@ -167,6 +291,9 @@ class VehicleController extends Controller
 
         $vehicle->update($validated);
 
+        // Clear cache when vehicle is updated
+        Cache::forget('vehicle_filter_options');
+
         return redirect()->route('vehicles.show', $vehicle)
             ->with('success', 'Véhicule mis à jour avec succès !');
     }
@@ -181,6 +308,9 @@ class VehicleController extends Controller
         }
         
         $vehicle->delete();
+
+        // Clear cache when vehicle is deleted
+        Cache::forget('vehicle_filter_options');
 
         return redirect()->route('dashboard')
             ->with('success', 'Véhicule supprimé avec succès !');

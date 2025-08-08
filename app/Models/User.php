@@ -31,8 +31,16 @@ class User extends Authenticatable
         'date_of_birth',
         'driving_license_number',
         'driving_license_expiry',
+        'driving_license_front',
+        'driving_license_back',
+        'driving_license_status',
+        'driving_license_verified_at',
+        'driving_license_rejection_reason',
         'is_owner',
+        'is_admin',
         'is_verified',
+        'rating',
+        'rating_count',
     ];
 
     /**
@@ -57,7 +65,9 @@ class User extends Authenticatable
             'password' => 'hashed',
             'date_of_birth' => 'date',
             'driving_license_expiry' => 'date',
+            'driving_license_verified_at' => 'datetime',
             'is_owner' => 'boolean',
+            'is_admin' => 'boolean',
             'is_verified' => 'boolean',
             'rating' => 'decimal:2',
         ];
@@ -84,6 +94,18 @@ class User extends Authenticatable
         return $this->hasMany(Review::class, 'reviewee_id');
     }
 
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    public function favoriteVehicles()
+    {
+        return $this->belongsToMany(Vehicle::class, 'favorites')
+            ->withPivot('notes', 'created_at')
+            ->withTimestamps();
+    }
+
     // Helpers
     public function getAverageRating()
     {
@@ -92,11 +114,33 @@ class User extends Authenticatable
 
     public function canRent(): bool
     {
-        return $this->is_verified && $this->driving_license_expiry > now();
+        return $this->driving_license_expiry && 
+               $this->driving_license_expiry > now() &&
+               $this->driving_license_status !== 'rejected';
+    }
+
+    public function hasValidLicense(): bool
+    {
+        return $this->driving_license_status === 'verified' &&
+               $this->driving_license_expiry &&
+               $this->driving_license_expiry > now();
+    }
+
+    public function licenseNeedsVerification(): bool
+    {
+        return !$this->driving_license_number ||
+               !$this->driving_license_expiry ||
+               $this->driving_license_status === 'pending' ||
+               ($this->driving_license_expiry && $this->driving_license_expiry < now());
     }
 
     public function canOwn(): bool
     {
         return $this->is_verified && $this->is_owner;
+    }
+
+    public function hasFavorited(Vehicle $vehicle): bool
+    {
+        return $this->favorites()->where('vehicle_id', $vehicle->id)->exists();
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
@@ -131,6 +131,30 @@ const canConfirm = computed(() => {
 const canCancel = computed(() => {
     return (isOwner.value || isRenter.value) && ['pending', 'confirmed'].includes(props.rental.status)
 })
+
+const canPay = computed(() => {
+    return isRenter.value && props.rental.status === 'confirmed' && props.rental.payment_status !== 'paid'
+})
+
+const getPaymentStatusLabel = (status: string): string => {
+    const statusLabels: Record<string, string> = {
+        'pending': 'En attente',
+        'paid': 'Payé',
+        'failed': 'Échoué',
+        'refunded': 'Remboursé'
+    }
+    return statusLabels[status] || status
+}
+
+const getPaymentStatusColor = (status: string): string => {
+    const statusColors: Record<string, string> = {
+        'pending': 'bg-yellow-100 text-yellow-800',
+        'paid': 'bg-green-100 text-green-800',
+        'failed': 'bg-red-100 text-red-800',
+        'refunded': 'bg-orange-100 text-orange-800'
+    }
+    return statusColors[status] || 'bg-gray-100 text-gray-800'
+}
 </script>
 
 <template>
@@ -322,8 +346,11 @@ const canCancel = computed(() => {
                                         <span>{{ formatPrice(rental.total_amount) }}</span>
                                     </div>
 
-                                    <div class="text-sm text-gray-600">
-                                        Statut paiement : {{ rental.payment_status }}
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">Statut paiement :</span>
+                                        <Badge :class="getPaymentStatusColor(rental.payment_status)">
+                                            {{ getPaymentStatusLabel(rental.payment_status) }}
+                                        </Badge>
                                     </div>
                                 </div>
 
@@ -339,6 +366,15 @@ const canCancel = computed(() => {
                                         class="w-full bg-green-600 hover:bg-green-700"
                                     >
                                         {{ confirmForm.processing ? 'Confirmation...' : 'Confirmer la réservation' }}
+                                    </Button>
+
+                                    <!-- Payment button for renter -->
+                                    <Button
+                                        v-if="canPay"
+                                        @click="() => router.visit(route('payments.show', rental.id))"
+                                        class="w-full bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        💳 Payer maintenant ({{ formatPrice(rental.total_amount) }})
                                     </Button>
 
                                     <!-- Cancel button -->

@@ -9,10 +9,10 @@ Une application web complète de location de voitures entre particuliers, constr
 #### 🏗️ Architecture Backend :
 - **Base de données complète** : 5 tables (users, vehicles, rentals, reviews, vehicle_images)
 - **Modèles Eloquent** : Relations complètes et méthodes utilitaires
-- **Contrôleurs** : VehicleController et RentalController avec toutes les fonctionnalités
+- **Contrôleurs** : VehicleController, RentalController, ReviewController et LicenseVerificationController
 - **Validation** : Validation robuste pour tous les formulaires
-- **Policies** : Système d'autorisation (à compléter)
-- **Routes** : Structure RESTful complète
+- **Policies** : Système d'autorisation avec RentalPolicy et ReviewPolicy
+- **Routes** : Structure RESTful complète avec routes admin
 
 #### 🎨 Frontend Vue.js :
 - **Pages principales** :
@@ -23,16 +23,27 @@ Une application web complète de location de voitures entre particuliers, constr
   - Dashboard personnalisé
   - Gestion des véhicules propriétaires
   - Suivi des réservations locataires
+  - Système complet d'évaluations (création, édition, affichage)
+  - Vérification du permis de conduire
+  - Panel admin pour validation des permis
 - **Navigation** : Menu latéral avec toutes les sections
-- **Composants UI** : Badge, Cards, Forms avec Reka UI
+- **Composants UI** : Badge, Cards, Forms, StarRating, LicenseAlert avec Reka UI
 - **TypeScript** : Typage complet pour la sécurité
 
 #### ⚙️ Fonctionnalités Clés :
-- **Recherche avancée** : Filtres par marque, ville, dates, carburant, etc.
+- **Recherche avancée** : Filtres par marque, ville, dates, carburant, type de véhicule, équipements, prix, etc.
+- **Calendrier visuel** : Interface calendrier interactive pour visualiser les disponibilités
 - **Gestion d'images** : Upload multiple avec aperçu
 - **Calcul de prix** : Tarification flexible (jour/semaine/mois)
-- **Workflow complet** : Recherche → Réservation → Confirmation → Location → Retour
-- **Système de notes** : Évaluations mutuelles (structure prête)
+- **Workflow complet** : Recherche → Réservation → Confirmation → Location → Retour → Évaluation
+- **Système de notes** : Évaluations mutuelles complètes avec critères spécifiques
+- **Validation du permis** : Vérification obligatoire avant location avec statuts (pending, verified, rejected)
+- **Notifications contextuelles** : Alertes pour permis manquant, expiré ou rejeté
+- **Panel admin** : Interface de validation des permis de conduire
+- **Performances optimisées** : Requêtes optimisées, mise en cache, indexes de base de données
+- **Géolocalisation et cartes interactives** : Cartes Leaflet intégrées, recherche par localisation, visualisation sur carte
+- **Système de favoris/wishlist** : Sauvegarde des véhicules préférés avec notes personnelles
+- **Système de paiement** : Intégration Stripe et PayPal avec gestion des frais et remboursements
 - **Données de test** : 3 véhicules et 2 utilisateurs pour tester
 
 ## 🚀 Installation et Configuration
@@ -111,18 +122,22 @@ Après avoir exécuté le seeder, vous pouvez utiliser ces comptes :
    - ✅ Modifier les informations du véhicule
    - ✅ Gérer la disponibilité et les tarifs
    - ✅ Voir les statistiques de location
+   - ✅ Consulter les évaluations de ses véhicules
 
 2. **Gestion des réservations**
    - ✅ Voir les demandes de réservation
    - ✅ Confirmer ou refuser les demandes
    - ✅ Suivre l'état des locations en cours
    - ✅ Enregistrer la remise et le retour du véhicule
+   - ✅ Évaluer les locataires après la location
 
 ### Pour les Locataires
 
 1. **Recherche et réservation**
-   - ✅ Rechercher des véhicules par critères multiples
+   - ✅ Rechercher des véhicules par critères multiples (marque, ville, type, carburant, prix, équipements, etc.)
+   - ✅ Calendrier visuel interactif pour sélectionner les dates de location
    - ✅ Voir les détails complets avec galerie photos
+   - ✅ Consulter les évaluations du véhicule et du propriétaire
    - ✅ Vérifier la disponibilité en temps réel
    - ✅ Calculer automatiquement le prix selon la durée
 
@@ -131,38 +146,69 @@ Après avoir exécuté le seeder, vous pouvez utiliser ces comptes :
    - ✅ Annuler une réservation (si non confirmée)
    - ✅ Voir l'historique des locations
    - ✅ Contacter le propriétaire
+   - ✅ Évaluer le véhicule et le propriétaire après la location
 
 ### Pour Tous les Utilisateurs
 
 1. **Profil et authentification**
    - ✅ Inscription avec validation email
    - ✅ Gestion du profil personnel
-   - ✅ Ajout des informations de permis de conduire
+   - ✅ Ajout et validation du permis de conduire
    - ✅ Mode clair/sombre
+   - ✅ Notifications de statut du permis
 
 2. **Dashboard personnalisé**
    - ✅ Vue d'ensemble des activités
    - ✅ Statistiques personnelles
    - ✅ Accès rapide aux fonctionnalités principales
    - ✅ Conseils pour bien démarrer
+   - ✅ Alertes pour permis manquant ou expirant
+
+3. **Système d'évaluations**
+   - ✅ Consultation de toutes les évaluations publiques
+   - ✅ Système de notation sur 5 étoiles
+   - ✅ Critères détaillés (propreté, communication, état, rapport qualité/prix)
+   - ✅ Historique des évaluations reçues et données
+
+4. **Géolocalisation et cartes interactives**
+   - ✅ Visualisation des véhicules sur carte interactive (Leaflet)
+   - ✅ Recherche géolocalisée avec rayon personnalisable (1-100km)
+   - ✅ Positionnement automatique avec géolocalisation du navigateur
+   - ✅ Recherche d'adresse avec géocodage (OpenStreetMap/Nominatim)
+   - ✅ Vue carte/grille commutable sur la liste des véhicules
+   - ✅ Sélecteur de localisation sur carte pour l'ajout de véhicules
+   - ✅ Affichage de la localisation sur la page de détail du véhicule
+   - ✅ Intégration avec services de navigation (Google Maps, Waze, Apple Plans)
+   - ✅ Calcul de distance et temps de trajet estimé
+   - ✅ Navigation rapide depuis les popups de carte
+
+5. **Système de favoris/wishlist**
+   - ✅ Ajout/suppression de véhicules aux favoris d'un clic
+   - ✅ Page dédiée pour gérer sa wishlist
+   - ✅ Possibilité d'ajouter des notes personnelles aux favoris
+   - ✅ Statistiques et accès rapide depuis le dashboard
+   - ✅ Intégration dans toutes les vues de véhicules
 
 ## 🔧 Améliorations Possibles
 
 ### Court terme
-- [ ] Finaliser le système d'évaluations et commentaires
-- [ ] Ajouter la validation du permis de conduire
+- [x] ✅ Système d'évaluations et commentaires complet
+- [x] ✅ Validation du permis de conduire avec workflow admin
+- [x] ✅ Améliorer le système de recherche avec plus de filtres
+- [x] ✅ Ajouter un calendrier de disponibilité visuel
+- [x] ✅ Optimiser les performances des requêtes
+- [x] ✅ Système de favoris/wishlist
+- [x] ✅ Géolocalisation avec cartes interactives
+- [x] ✅ Intégration avec services de navigation (Google Maps, Waze)
 - [ ] Système de notifications in-app
-- [ ] Améliorer le système de recherche avec plus de filtres
-- [ ] Ajouter un calendrier de disponibilité visuel
-- [ ] Optimiser les performances des requêtes
 
 ### Moyen terme
-- [ ] Intégration système de paiement (Stripe/PayPal)
-- [ ] Géolocalisation avec cartes interactives
+- [x] ✅ Intégration système de paiement (Stripe et PayPal)
 - [ ] Chat en temps réel entre utilisateurs
-- [ ] Système de favoris/wishlist
 - [ ] Export PDF des contrats de location
 - [ ] Système de parrainage
+- [ ] Notifications push géolocalisées
+- [ ] Intégration avec API de trafic en temps réel
 
 ### Long terme
 - [ ] Application mobile (React Native/Flutter)
@@ -188,9 +234,11 @@ Il suffit de dupliquer la structure Vehicle/Rental en adaptant les champs spéci
 - **Backend** : Laravel 12, PHP 8.2
 - **Frontend** : Vue.js 3, TypeScript, Inertia.js
 - **Styling** : Tailwind CSS v4, Reka UI
+- **Cartes** : Leaflet.js, OpenStreetMap, Nominatim (géocodage)
 - **Base de données** : SQLite (dev), MySQL/PostgreSQL (prod)
 - **Build** : Vite, Composer
 - **Authentification** : Laravel Breeze
+- **Paiement** : Stripe SDK, PayPal Checkout SDK
 
 ## 📝 Licence
 
