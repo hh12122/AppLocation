@@ -73,6 +73,11 @@ class Rental extends Model
         return $this->hasOne(Payment::class)->latestOfMany();
     }
 
+    public function conversation()
+    {
+        return $this->hasOne(Conversation::class);
+    }
+
     // Helpers
     public function getDurationInDays(): int
     {

@@ -106,6 +106,27 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function conversationsAsRenter()
+    {
+        return $this->hasMany(Conversation::class, 'renter_id');
+    }
+
+    public function conversationsAsOwner()
+    {
+        return $this->hasMany(Conversation::class, 'owner_id');
+    }
+
+    public function conversations()
+    {
+        return Conversation::where('renter_id', $this->id)
+            ->orWhere('owner_id', $this->id);
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
     // Helpers
     public function getAverageRating()
     {

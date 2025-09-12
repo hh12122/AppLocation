@@ -407,6 +407,21 @@ const getPaymentStatusColor = (status: string): string => {
                                         📄 Télécharger le contrat PDF
                                     </a>
 
+                                    <!-- Chat button -->
+                                    <form
+                                        v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
+                                        :action="route('chat.create-rental', rental.id)"
+                                        method="POST"
+                                    >
+                                        <input type="hidden" name="_token" :value="$page.props.csrf_token" />
+                                        <button
+                                            type="submit"
+                                            class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 text-center"
+                                        >
+                                            💬 Ouvrir le chat
+                                        </button>
+                                    </form>
+
                                     <!-- Contact buttons -->
                                     <div v-if="rental.status === 'confirmed' || rental.status === 'active'" class="pt-2">
                                         <p class="text-sm text-gray-600 mb-2">Contacter :</p>

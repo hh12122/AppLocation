@@ -44,6 +44,8 @@ Une application web complète de location de voitures entre particuliers, constr
 - **Géolocalisation et cartes interactives** : Cartes Leaflet intégrées, recherche par localisation, visualisation sur carte
 - **Système de favoris/wishlist** : Sauvegarde des véhicules préférés avec notes personnelles
 - **Système de paiement** : Intégration Stripe et PayPal avec gestion des frais et remboursements
+- **Chat en temps réel** : Messagerie instantanée entre utilisateurs avec notifications push et en temps réel
+- **Export PDF** : Génération automatique de contrats de location professionnels
 - **Données de test** : 3 véhicules et 2 utilisateurs pour tester
 
 ## 🚀 Installation et Configuration
@@ -200,12 +202,12 @@ Après avoir exécuté le seeder, vous pouvez utiliser ces comptes :
 - [x] ✅ Système de favoris/wishlist
 - [x] ✅ Géolocalisation avec cartes interactives
 - [x] ✅ Intégration avec services de navigation (Google Maps, Waze)
-- [ ] Système de notifications in-app
+- [x] ✅ Système de notifications in-app
 
 ### Moyen terme
 - [x] ✅ Intégration système de paiement (Stripe et PayPal)
-- [ ] Chat en temps réel entre utilisateurs
-- [ ] Export PDF des contrats de location
+- [x] ✅ Chat en temps réel entre utilisateurs
+- [x] ✅ Export PDF des contrats de location
 - [ ] Système de parrainage
 - [ ] Notifications push géolocalisées
 - [ ] Intégration avec API de trafic en temps réel

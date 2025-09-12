@@ -101,5 +101,13 @@ Route::middleware(['auth'])->group(function () {
 // Webhook routes (no auth middleware)
 Route::post('webhooks/stripe', [PaymentController::class, 'stripeWebhook'])->name('webhooks.stripe');
 
+// Chat routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('chat', [\App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
+    Route::get('chat/{conversation}', [\App\Http\Controllers\ChatController::class, 'show'])->name('chat.show');
+    Route::post('chat/rental/{rental}', [\App\Http\Controllers\ChatController::class, 'createForRental'])->name('chat.create-rental');
+    Route::post('chat/{conversation}/archive', [\App\Http\Controllers\ChatController::class, 'archive'])->name('chat.archive');
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

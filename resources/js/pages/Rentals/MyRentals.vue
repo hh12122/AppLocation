@@ -207,6 +207,20 @@ const stats = {
                                         >
                                             📄 Contrat PDF
                                         </a>
+                                        <form
+                                            v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
+                                            :action="route('chat.create-rental', rental.id)"
+                                            method="POST"
+                                            class="inline"
+                                        >
+                                            <input type="hidden" name="_token" :value="$page.props.csrf_token" />
+                                            <button
+                                                type="submit"
+                                                class="text-green-600 hover:text-green-800 text-sm font-medium"
+                                            >
+                                                💬 Chat
+                                            </button>
+                                        </form>
                                         <Link 
                                             :href="route('vehicles.show', rental.vehicle.id)"
                                             class="text-green-600 hover:text-green-800 text-sm font-medium"
