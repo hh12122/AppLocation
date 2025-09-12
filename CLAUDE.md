@@ -168,6 +168,9 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
 - **referral_rewards**: Reward distribution system
 - **conversations**: Chat conversations between users
 - **messages**: Individual chat messages
+- **geo_notifications**: Geolocation-based notifications with targeting and scheduling
+- **notification_preferences**: User preferences for geo-notifications and location sharing
+- **user_locations**: User location history and current position tracking
 
 ### Advanced Vehicle Fields (Added 2025-08-08)
 - `vehicle_type`: sedan, SUV, hatchback, coupe, minivan, pickup, van
@@ -217,6 +220,7 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
 - `/ai/dashboard` - AI recommendations dashboard
 - `/referrals` - Referral program dashboard
 - `/chat` - Messaging center
+- `/settings/notification-preferences` - Manage geo-notification preferences
 
 #### API Routes
 - `/api/ai/recommendations` - Get personalized recommendations
@@ -224,6 +228,10 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
 - `/api/ai/search-suggestions` - Get search suggestions
 - `/api/localization/languages` - Get available languages
 - `/api/localization/translations` - Get translations
+- `/api/geo-notifications/location` - Update user location
+- `/api/geo-notifications/nearby` - Get nearby notifications
+- `/api/geo-notifications/{id}/read` - Mark notification as read
+- `/api/geo-notifications/{id}/clicked` - Mark notification as clicked
 
 #### Admin Routes
 - `/admin/license-verifications` - Review pending licenses
@@ -231,6 +239,11 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
 - `/admin/translations` - Manage translations
 - `/admin/languages/add` - Add new language
 - `/admin/languages/{language}/toggle` - Enable/disable language
+- `/admin/geo-notifications` - Manage geo-notifications
+- `/admin/geo-notifications/create` - Create new geo-notification
+- `/admin/geo-notifications/{id}/activate` - Activate notification
+- `/admin/geo-notifications/{id}/process` - Process pending notification
+- `/admin/geo-notifications/bulk-action` - Bulk operations on notifications
 
 ## Recent Updates (2025-08-08)
 
@@ -381,4 +394,20 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
    - useNotifications composable for notification management
    - Controller: ChatController
    - Models: Conversation, Message
-   - Note: Geolocation-based push notifications are NOT yet implemented
+
+17. **Geolocation-Based Push Notifications (Added 2025-09-12)**
+   - Complete location-based notification system
+   - Automatic nearby rental alerts when new vehicles become available
+   - Pickup reminders when users are near rental locations
+   - Area-specific alerts and promotional notifications
+   - Comprehensive user preference management with quiet hours and frequency controls
+   - Admin panel for creating and managing geo-notifications
+   - Advanced targeting with radius control (1-100km) and demographic criteria
+   - Browser notification permission handling with fallback options
+   - Real-time location tracking with privacy controls
+   - Database models: GeoNotification, NotificationPreferences, UserLocation
+   - Services: GeoNotificationService with ML-powered targeting algorithms
+   - Frontend components: GeoNotificationPermissions, GeoNotificationsList
+   - Composables: useGeoNotifications for complete location and notification management
+   - Admin dashboard with statistics, bulk actions, and testing tools
+   - Automatic cleanup of expired notifications and old location data

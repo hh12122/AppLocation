@@ -5,6 +5,9 @@ use App\Http\Controllers\RentalController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\GeoNotificationController;
+use App\Http\Controllers\Settings\NotificationPreferencesController;
+use App\Http\Controllers\Admin\GeoNotificationController as AdminGeoNotificationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -236,6 +239,44 @@ Route::prefix('api/ai')->middleware(['auth'])->group(function () {
 
 Route::get('ai/dashboard', [\App\Http\Controllers\AIRecommendationController::class, 'dashboard'])
     ->middleware(['auth'])->name('ai.dashboard');
+
+// Geolocation Notification routes
+Route::middleware(['auth'])->group(function () {
+    // User notification preferences
+    Route::get('settings/notification-preferences', [NotificationPreferencesController::class, 'show'])
+        ->name('settings.notification-preferences');
+    Route::post('settings/notification-preferences', [NotificationPreferencesController::class, 'store'])
+        ->name('settings.notification-preferences.store');
+    Route::post('settings/notification-preferences/reset', [NotificationPreferencesController::class, 'reset'])
+        ->name('settings.notification-preferences.reset');
+    Route::post('settings/notification-preferences/toggle/{type}', [NotificationPreferencesController::class, 'toggle'])
+        ->name('settings.notification-preferences.toggle');
+    Route::post('settings/notification-preferences/favorite-location', [NotificationPreferencesController::class, 'addFavoriteLocation'])
+        ->name('settings.notification-preferences.add-favorite-location');
+    Route::delete('settings/notification-preferences/favorite-location/{locationId}', [NotificationPreferencesController::class, 'removeFavoriteLocation'])
+        ->name('settings.notification-preferences.remove-favorite-location');
+    Route::get('settings/notification-preferences/export', [NotificationPreferencesController::class, 'export'])
+        ->name('settings.notification-preferences.export');
+});
+
+// Admin geo-notification routes
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('geo-notifications', AdminGeoNotificationController::class);
+    Route::post('geo-notifications/{geoNotification}/activate', [AdminGeoNotificationController::class, 'activate'])
+        ->name('geo-notifications.activate');
+    Route::post('geo-notifications/{geoNotification}/deactivate', [AdminGeoNotificationController::class, 'deactivate'])
+        ->name('geo-notifications.deactivate');
+    Route::post('geo-notifications/{geoNotification}/process', [AdminGeoNotificationController::class, 'process'])
+        ->name('geo-notifications.process');
+    Route::post('geo-notifications/test', [AdminGeoNotificationController::class, 'test'])
+        ->name('geo-notifications.test');
+    Route::get('geo-notifications/statistics', [AdminGeoNotificationController::class, 'statistics'])
+        ->name('geo-notifications.statistics');
+    Route::post('geo-notifications/bulk-action', [AdminGeoNotificationController::class, 'bulkAction'])
+        ->name('geo-notifications.bulk-action');
+    Route::post('geo-notifications/cleanup', [AdminGeoNotificationController::class, 'cleanup'])
+        ->name('geo-notifications.cleanup');
+});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

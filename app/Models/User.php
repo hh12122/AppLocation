@@ -175,6 +175,27 @@ class User extends Authenticatable
         return $this->hasMany(ReferralReward::class);
     }
 
+    // Geolocation relations
+    public function geoNotifications()
+    {
+        return $this->hasMany(GeoNotification::class);
+    }
+
+    public function notificationPreferences()
+    {
+        return $this->hasOne(NotificationPreferences::class);
+    }
+
+    public function locations()
+    {
+        return $this->hasMany(UserLocation::class);
+    }
+
+    public function currentLocation()
+    {
+        return $this->hasOne(UserLocation::class)->where('is_current', true);
+    }
+
     // Helpers
     public function getAverageRating()
     {
@@ -380,5 +401,34 @@ class User extends Authenticatable
                 ? ($this->getSuccessfulReferralsCount() / $this->referrals()->count()) * 100 
                 : 0,
         ];
+    }
+
+    // Geolocation helper methods
+    public function getOrCreateNotificationPreferences(): NotificationPreferences
+    {
+        return $this->notificationPreferences ?: 
+               NotificationPreferences::create(array_merge(
+                   ['user_id' => $this->id],
+                   NotificationPreferences::getDefaultPreferences()
+               ));
+    }
+
+    public function hasLocationSharing(): bool
+    {
+        return $this->notificationPreferences?->share_location ?? false;
+    }
+
+    public function canReceiveGeoNotifications(): bool
+    {
+        return $this->hasLocationSharing() && 
+               $this->currentLocation && 
+               $this->notificationPreferences?->push_enabled;
+    }
+
+    public function getAge(): ?int
+    {
+        return $this->date_of_birth 
+            ? $this->date_of_birth->diffInYears(now())
+            : null;
     }
 }
