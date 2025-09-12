@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Laravel + Vue.js car rental application called "CarLocation" built with:
+This is a Laravel + Vue.js multi-service rental platform called "AppLocation" built with:
 - **Backend**: Laravel 12 with Inertia.js for SPA behavior
 - **Frontend**: Vue 3 + TypeScript with Tailwind CSS v4 and Reka UI components
 - **Maps**: Leaflet.js with OpenStreetMap tiles and Nominatim geocoding
@@ -26,6 +26,11 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
 - **License Verification**: Mandatory driver's license validation before rentals
 - **Dashboard**: Statistics and management for both user types
 - **Admin Panel**: License verification management interface
+- **AI Recommendations**: Personalized suggestions using hybrid algorithms (collaborative + content-based filtering)
+- **Multilingual Support**: Full i18n with FR, EN, ES, AR languages and RTL support
+- **Referral System**: Complete referral program with codes, rewards, and leaderboard
+- **Multi-Type Rentals**: Support for vehicles, properties, and equipment rentals
+- **Chat System**: Real-time messaging between users
 - **Performance Optimizations**: Optimized queries, caching, database indexes
 
 ## Development Commands
@@ -56,10 +61,19 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
 - **Controllers**: Located in `app/Http/Controllers/` with Auth and Settings subdirectories
   - ReviewController: Complete CRUD for reviews and ratings
   - LicenseVerificationController: License upload and admin verification
-- **Models**: Standard Laravel Eloquent models in `app/Models/` including Review model
+  - AIRecommendationController: AI-powered recommendations and behavior tracking
+  - LocalizationController: Language management and translation controls
+  - PropertyController: Property listing and management
+  - PropertyBookingController: Property reservation workflow
+  - EquipmentController: Equipment listing and management
+  - EquipmentBookingController: Equipment rental workflow
+  - ReferralController: Referral system management
+  - ChatController: Real-time messaging
+- **Models**: Standard Laravel Eloquent models in `app/Models/` including Review, UserActivity, Recommendation, Language, Translation, Property, PropertyBooking, Equipment, EquipmentBooking, Referral, ReferralReward models
 - **Routes**: Organized in separate files (`web.php`, `auth.php`, `settings.php`)
 - **Database**: SQLite with migrations in `database/migrations/`
-- **Middleware**: IsAdmin middleware for admin-only routes
+- **Middleware**: IsAdmin middleware for admin-only routes, Localization middleware for language detection
+- **Services**: AIRecommendationService for ML algorithms, LocalizationService for translation management
 
 ### Frontend Structure
 - **Entry Point**: `resources/js/app.ts` initializes Inertia.js app
@@ -68,6 +82,7 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
   - Admin/LicenseVerifications: Admin panel for license validation
   - Settings/DriverLicense: User license management
   - Favorites/: Wishlist management pages (Index)
+  - AI/Dashboard: AI recommendations dashboard with analytics
 - **Components**: Reusable components in `resources/js/components/`
   - StarRating: 5-star rating component
   - LicenseAlert: Contextual license status notifications
@@ -79,9 +94,14 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
   - FavoriteButton: Toggle favorite status for vehicles
   - NavigationModal: Multi-service navigation modal with distance calculation
   - QuickNavigation: Dropdown navigation menu for quick access
+  - LanguageSwitcher: Language selection dropdown with flags
+  - MultilingualExample: Demo component showcasing all i18n features
+  - AIRecommendations: Component displaying personalized recommendations
 - **Composables**: Vue composables in `resources/js/composables/`
   - useGeolocation: Geolocation utilities with current position, geocoding, and distance calculation
   - useNavigation: Navigation services integration (Google Maps, Waze, Apple Plans, OpenStreetMap)
+  - useAIRecommendations: AI recommendation fetching and management
+  - useLocalization: i18n utilities with formatting, RTL support, and language switching
 - **UI Components**: Reka UI components in `resources/js/components/ui/`
 - **Layouts**: Page layouts in `resources/js/layouts/`
 
@@ -103,6 +123,8 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
 - **Theme System**: Light/dark mode via `useAppearance` composable
 - **Component Library**: Built on Reka UI with custom components
 - **Type Safety**: Full TypeScript integration with proper type definitions
+- **AI Recommendations**: Hybrid recommendation engine with collaborative and content-based filtering
+- **Multilingual Interface**: Full i18n support with 4 languages, RTL support, and dynamic translations
 
 ### Inertia.js Integration
 - Pages are Vue components that receive data from Laravel controllers
@@ -129,6 +151,23 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
 - **vehicle_images**: Photo management for vehicles
 - **favorites**: User wishlist system with personal notes and timestamps
 - **payments**: Complete payment tracking with Stripe and PayPal integration, fee calculation, and refund support
+- **user_activities**: Tracking user behavior for AI recommendations
+- **recommendations**: Personalized AI-generated suggestions
+- **user_preferences**: Learned user preferences for recommendations
+- **trending_items**: Popular items tracking
+- **search_histories**: Search behavior tracking for improvements
+- **languages**: Available languages configuration
+- **translations**: Dynamic translation storage
+- **properties**: Property listings with amenities and pricing
+- **property_bookings**: Property reservations with check-in/check-out
+- **property_images**: Property photo management
+- **equipment**: Equipment listings with categories and specifications
+- **equipment_bookings**: Equipment rentals with delivery tracking
+- **equipment_images**: Equipment photo management
+- **referrals**: Referral codes and tracking
+- **referral_rewards**: Reward distribution system
+- **conversations**: Chat conversations between users
+- **messages**: Individual chat messages
 
 ### Advanced Vehicle Fields (Added 2025-08-08)
 - `vehicle_type`: sedan, SUV, hatchback, coupe, minivan, pickup, van
@@ -148,6 +187,8 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
 - `driving_license_verified_at`: Verification timestamp
 - `driving_license_rejection_reason`: Admin feedback for rejections
 - `is_admin`: Boolean for admin privileges
+- `locale`: User's preferred language
+- `timezone`: User's timezone preference
 
 ### Important Routes
 
@@ -160,17 +201,36 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
 
 #### Authenticated Routes
 - `/my-vehicles` - Manage owned vehicles
-- `/my-rentals` - Renter's reservations
+- `/my-properties` - Manage owned properties
+- `/my-equipment` - Manage owned equipment
+- `/my-rentals` - Vehicle renter's reservations
+- `/my-property-bookings` - Property guest's reservations
+- `/my-equipment-bookings` - Equipment renter's reservations
 - `/my-bookings` - Owner's rental requests
 - `/rentals/create/{vehicle}` - Book a vehicle
+- `/properties/{property}/book` - Book a property
+- `/equipment/{equipment}/book` - Book equipment
 - `/rentals/{rental}` - Rental details and management
 - `/rentals/{rental}/review` - Create review after rental
 - `/settings/driver-license` - Manage driver's license
 - `/favorites` - Manage wishlist/favorites with personal notes
+- `/ai/dashboard` - AI recommendations dashboard
+- `/referrals` - Referral program dashboard
+- `/chat` - Messaging center
+
+#### API Routes
+- `/api/ai/recommendations` - Get personalized recommendations
+- `/api/ai/trending` - Get trending items
+- `/api/ai/search-suggestions` - Get search suggestions
+- `/api/localization/languages` - Get available languages
+- `/api/localization/translations` - Get translations
 
 #### Admin Routes
 - `/admin/license-verifications` - Review pending licenses
 - `/admin/users/{user}/verify-license` - Approve/reject license
+- `/admin/translations` - Manage translations
+- `/admin/languages/add` - Add new language
+- `/admin/languages/{language}/toggle` - Enable/disable language
 
 ## Recent Updates (2025-08-08)
 
@@ -255,3 +315,70 @@ This is a Laravel + Vue.js car rental application called "CarLocation" built wit
    - FavoriteButton for wishlist functionality
    - Pagination component for lists
    - Image preview modals
+
+11. **AI Recommendations System (Added 2025-09-12)**
+   - Hybrid recommendation algorithms (collaborative + content-based filtering)
+   - User behavior tracking with activity logging
+   - Personalized recommendations based on browsing history
+   - Search suggestions and autocomplete
+   - Trending items analysis
+   - Continuous learning from user feedback
+   - Confidence scoring for recommendations
+   - Dashboard with performance metrics
+   - Services: AIRecommendationService with ML algorithms
+   - Models: UserActivity, Recommendation, UserPreference, TrendingItem, SearchHistory
+
+12. **Multilingual Support (Added 2025-09-12)**
+   - Support for 4 languages: French (default), English, Spanish, Arabic
+   - Complete RTL support for Arabic language
+   - Automatic browser language detection
+   - User preference persistence
+   - Dynamic database-stored translations
+   - Static file-based translations for UI strings
+   - Localized formatting utilities (dates, currency, numbers, relative time)
+   - LanguageSwitcher component with flags
+   - Vue i18n integration with Inertia.js
+   - Services: LocalizationService for translation management
+   - Middleware: Localization for automatic locale setting
+   - Models: Language, Translation for dynamic content
+
+13. **Referral System (Added 2025-09-12)**
+   - Unique referral code generation for each user
+   - Reward system for both referrer and referee
+   - Leaderboard with top referrers
+   - Conversion tracking and statistics
+   - Social media sharing integration
+   - Automatic credit application on bookings
+   - Models: Referral, ReferralReward for tracking
+
+14. **Property Rental System (Added 2025-09-12)**
+   - Complete property management (houses, apartments, villas)
+   - Check-in/check-out workflow
+   - Amenities and features management
+   - Flexible pricing (per night/week/month)
+   - Property-specific reviews
+   - Gallery with multiple photos
+   - Controllers: PropertyController, PropertyBookingController
+   - Models: Property, PropertyBooking, PropertyImage
+
+15. **Equipment Rental System (Added 2025-09-12)**
+   - Multi-category equipment support (sports, tools, events)
+   - Stock and quantity management
+   - Delivery and return tracking
+   - Equipment status workflow (ready, delivered, returned)
+   - Rental extension requests
+   - Hourly/daily/weekly pricing
+   - Controllers: EquipmentController, EquipmentBookingController
+   - Models: Equipment, EquipmentBooking, EquipmentImage
+
+16. **Real-time Chat System**
+   - Direct messaging between users
+   - Conversation management
+   - Archive functionality
+   - Integration with rental context
+   - Browser push notifications for new messages
+   - Laravel Echo and Pusher integration
+   - useNotifications composable for notification management
+   - Controller: ChatController
+   - Models: Conversation, Message
+   - Note: Geolocation-based push notifications are NOT yet implemented
