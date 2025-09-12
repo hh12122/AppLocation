@@ -189,5 +189,22 @@ Route::post('referrals/validate-code', [\App\Http\Controllers\ReferralController
 Route::post('referrals/process', [\App\Http\Controllers\ReferralController::class, 'processReferral'])->name('referrals.process');
 Route::post('referrals/mark-conversion', [\App\Http\Controllers\ReferralController::class, 'markConversion'])->name('referrals.mark-conversion');
 
+// AI Recommendations routes
+Route::prefix('api/ai')->middleware(['auth'])->group(function () {
+    Route::get('recommendations', [\App\Http\Controllers\AIRecommendationController::class, 'getPersonalizedRecommendations']);
+    Route::get('trending', [\App\Http\Controllers\AIRecommendationController::class, 'getTrendingItems']);
+    Route::get('search-suggestions', [\App\Http\Controllers\AIRecommendationController::class, 'getSearchSuggestions']);
+    Route::post('track-activity', [\App\Http\Controllers\AIRecommendationController::class, 'trackActivity']);
+    Route::post('track-search', [\App\Http\Controllers\AIRecommendationController::class, 'trackSearch']);
+    Route::post('search/{searchId}/success', [\App\Http\Controllers\AIRecommendationController::class, 'markSearchSuccess']);
+    Route::post('recommendations/{id}/viewed', [\App\Http\Controllers\AIRecommendationController::class, 'markRecommendationViewed']);
+    Route::post('recommendations/{id}/clicked', [\App\Http\Controllers\AIRecommendationController::class, 'markRecommendationClicked']);
+    Route::post('recommendations/{id}/converted', [\App\Http\Controllers\AIRecommendationController::class, 'markRecommendationConverted']);
+    Route::post('recommendations/{id}/feedback', [\App\Http\Controllers\AIRecommendationController::class, 'provideFeedback']);
+});
+
+Route::get('ai/dashboard', [\App\Http\Controllers\AIRecommendationController::class, 'dashboard'])
+    ->middleware(['auth'])->name('ai.dashboard');
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
