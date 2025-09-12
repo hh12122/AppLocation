@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building } from 'lucide-vue-next';
+import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building, Bike, Wrench, Ship, MapPin } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -25,6 +25,26 @@ const mainNavItems: NavItem[] = [
         icon: Home,
     },
     {
+        title: 'Sport',
+        href: '/equipment/category/sports_equipment',
+        icon: Bike,
+    },
+    {
+        title: 'Outils',
+        href: '/equipment/category/tools_material',
+        icon: Wrench,
+    },
+    {
+        title: 'Bateaux',
+        href: '/equipment/category/boats',
+        icon: Ship,
+    },
+    {
+        title: 'Espaces',
+        href: '/equipment/category/spaces',
+        icon: MapPin,
+    },
+    {
         title: 'Mes véhicules',
         href: '/my-vehicles',
         icon: Car,
@@ -35,6 +55,11 @@ const mainNavItems: NavItem[] = [
         icon: Building,
     },
     {
+        title: 'Mon matériel',
+        href: '/my-equipment',
+        icon: Wrench,
+    },
+    {
         title: 'Mes réservations',
         href: '/my-rentals',
         icon: Calendar,
@@ -42,6 +67,11 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Mes séjours',
         href: '/my-property-bookings',
+        icon: Calendar,
+    },
+    {
+        title: 'Mes locations matériel',
+        href: '/my-equipment-bookings',
         icon: Calendar,
     },
     {

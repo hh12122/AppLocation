@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Favorite;
 use App\Models\Vehicle;
+use App\Models\Equipment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -17,51 +18,85 @@ class FavoriteController extends Controller
     /**
      * Display the user's wishlist
      */
-    public function index()
+    public function index(Request $request)
     {
-        $favorites = Favorite::forUser(auth()->id())
-            ->withVehicleDetails()
-            ->orderBy('created_at', 'desc')
-            ->paginate(12);
+        $query = Favorite::forUser(auth()->id());
+        
+        // Filter by type if specified
+        $type = $request->get('type', 'all'); // all, vehicles, equipment
+        
+        if ($type === 'vehicles') {
+            $query->vehicles()->withVehicleDetails();
+        } elseif ($type === 'equipment') {
+            $query->equipment()->withEquipmentDetails();
+        } else {
+            $query->withDetails();
+        }
+        
+        $favorites = $query->orderBy('created_at', 'desc')->paginate(12);
 
         return Inertia::render('Favorites/Index', [
-            'favorites' => $favorites
+            'favorites' => $favorites,
+            'currentType' => $type,
+            'stats' => [
+                'total' => Favorite::forUser(auth()->id())->count(),
+                'vehicles' => Favorite::forUser(auth()->id())->vehicles()->count(),
+                'equipment' => Favorite::forUser(auth()->id())->equipment()->count(),
+            ]
         ]);
     }
 
     /**
-     * Add a vehicle to favorites
+     * Add a vehicle or equipment to favorites
      */
     public function store(Request $request)
     {
         $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id',
+            'type' => 'required|in:vehicle,equipment',
+            'item_id' => 'required|integer',
             'notes' => 'nullable|string|max:500'
         ]);
 
-        $vehicle = Vehicle::findOrFail($request->vehicle_id);
+        $type = $request->type;
+        $itemId = $request->item_id;
 
-        // Check if user can favorite this vehicle (not their own)
-        if ($vehicle->owner_id === auth()->id()) {
-            return back()->with('error', 'Vous ne pouvez pas ajouter votre propre véhicule aux favoris.');
+        // Get the model class and item
+        if ($type === 'vehicle') {
+            $request->validate(['item_id' => 'exists:vehicles,id']);
+            $item = Vehicle::findOrFail($itemId);
+            $modelClass = Vehicle::class;
+            $itemName = 'véhicule';
+        } else {
+            $request->validate(['item_id' => 'exists:equipment,id']);
+            $item = Equipment::findOrFail($itemId);
+            $modelClass = Equipment::class;
+            $itemName = 'matériel';
+        }
+
+        // Check if user can favorite this item (not their own)
+        if ($item->owner_id === auth()->id()) {
+            return back()->with('error', "Vous ne pouvez pas ajouter votre propre {$itemName} aux favoris.");
         }
 
         // Check if already favorited
         $existingFavorite = Favorite::where('user_id', auth()->id())
-            ->where('vehicle_id', $request->vehicle_id)
+            ->where('favoritable_type', $modelClass)
+            ->where('favoritable_id', $itemId)
             ->first();
 
         if ($existingFavorite) {
-            return back()->with('info', 'Ce véhicule est déjà dans vos favoris.');
+            return back()->with('info', "Ce {$itemName} est déjà dans vos favoris.");
         }
 
         Favorite::create([
             'user_id' => auth()->id(),
-            'vehicle_id' => $request->vehicle_id,
+            'favoritable_type' => $modelClass,
+            'favoritable_id' => $itemId,
+            'vehicle_id' => $type === 'vehicle' ? $itemId : null, // Keep for backwards compatibility
             'notes' => $request->notes
         ]);
 
-        return back()->with('success', 'Véhicule ajouté aux favoris !');
+        return back()->with('success', ucfirst($itemName) . ' ajouté aux favoris !');
     }
 
     /**
@@ -108,21 +143,37 @@ class FavoriteController extends Controller
     public function toggle(Request $request)
     {
         $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id'
+            'type' => 'required|in:vehicle,equipment',
+            'item_id' => 'required|integer'
         ]);
 
-        $vehicle = Vehicle::findOrFail($request->vehicle_id);
+        $type = $request->type;
+        $itemId = $request->item_id;
 
-        // Check if user can favorite this vehicle (not their own)
-        if ($vehicle->owner_id === auth()->id()) {
+        // Get the model class and item
+        if ($type === 'vehicle') {
+            $request->validate(['item_id' => 'exists:vehicles,id']);
+            $item = Vehicle::findOrFail($itemId);
+            $modelClass = Vehicle::class;
+            $itemName = 'véhicule';
+        } else {
+            $request->validate(['item_id' => 'exists:equipment,id']);
+            $item = Equipment::findOrFail($itemId);
+            $modelClass = Equipment::class;
+            $itemName = 'matériel';
+        }
+
+        // Check if user can favorite this item (not their own)
+        if ($item->owner_id === auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vous ne pouvez pas ajouter votre propre véhicule aux favoris.'
+                'message' => "Vous ne pouvez pas ajouter votre propre {$itemName} aux favoris."
             ], 400);
         }
 
         $favorite = Favorite::where('user_id', auth()->id())
-            ->where('vehicle_id', $request->vehicle_id)
+            ->where('favoritable_type', $modelClass)
+            ->where('favoritable_id', $itemId)
             ->first();
 
         if ($favorite) {
@@ -131,34 +182,68 @@ class FavoriteController extends Controller
             return response()->json([
                 'success' => true,
                 'is_favorited' => false,
-                'message' => 'Véhicule retiré des favoris'
+                'message' => ucfirst($itemName) . ' retiré des favoris'
             ]);
         } else {
             // Add to favorites
             Favorite::create([
                 'user_id' => auth()->id(),
-                'vehicle_id' => $request->vehicle_id
+                'favoritable_type' => $modelClass,
+                'favoritable_id' => $itemId,
+                'vehicle_id' => $type === 'vehicle' ? $itemId : null, // Keep for backwards compatibility
             ]);
             
             return response()->json([
                 'success' => true,
                 'is_favorited' => true,
-                'message' => 'Véhicule ajouté aux favoris'
+                'message' => ucfirst($itemName) . ' ajouté aux favoris'
             ]);
         }
     }
 
     /**
-     * Check if a vehicle is favorited by the current user
+     * Check if an item is favorited by the current user
      */
-    public function check($vehicleId)
+    public function check(Request $request, $itemId)
     {
         if (!auth()->check()) {
             return response()->json(['is_favorited' => false]);
         }
 
+        $type = $request->get('type', 'vehicle'); // Default to vehicle for backwards compatibility
+        
+        if ($type === 'vehicle') {
+            $modelClass = Vehicle::class;
+        } else {
+            $modelClass = Equipment::class;
+        }
+
         $isFavorited = Favorite::where('user_id', auth()->id())
-            ->where('vehicle_id', $vehicleId)
+            ->where('favoritable_type', $modelClass)
+            ->where('favoritable_id', $itemId)
+            ->exists();
+
+        return response()->json(['is_favorited' => $isFavorited]);
+    }
+
+    /**
+     * Legacy method for vehicle favorites check
+     */
+    public function checkVehicle($vehicleId)
+    {
+        if (!auth()->check()) {
+            return response()->json(['is_favorited' => false]);
+        }
+
+        // Check both new polymorphic and old vehicle_id for compatibility
+        $isFavorited = Favorite::where('user_id', auth()->id())
+            ->where(function($query) use ($vehicleId) {
+                $query->where('vehicle_id', $vehicleId)
+                      ->orWhere(function($subQuery) use ($vehicleId) {
+                          $subQuery->where('favoritable_type', Vehicle::class)
+                                   ->where('favoritable_id', $vehicleId);
+                      });
+            })
             ->exists();
 
         return response()->json(['is_favorited' => $isFavorited]);

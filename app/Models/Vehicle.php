@@ -82,14 +82,21 @@ class Vehicle extends Model
         return $this->hasMany(Review::class)->where('type', 'vehicle');
     }
 
-    public function favorites(): HasMany
+    public function favorites()
+    {
+        return $this->morphMany(Favorite::class, 'favoritable');
+    }
+
+    // Keep backwards compatibility
+    public function legacyFavorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
     }
 
     public function favoritedBy()
     {
-        return $this->belongsToMany(User::class, 'favorites')
+        return $this->belongsToMany(User::class, 'favorites', 'favoritable_id', 'user_id')
+            ->where('favorites.favoritable_type', self::class)
             ->withPivot('notes', 'created_at')
             ->withTimestamps();
     }

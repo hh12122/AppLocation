@@ -15,7 +15,7 @@
           </div>
 
           <!-- Main Categories -->
-          <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             <!-- Vehicles Card -->
             <div class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
               <div class="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -56,6 +56,174 @@
                 >
                   <span class="flex items-center justify-center">
                     Explorer les véhicules
+                    <ArrowRight class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            <!-- Sports Equipment Card -->
+            <div class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div class="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              <div class="p-8">
+                <div class="flex items-center mb-6">
+                  <div class="p-3 bg-orange-100 dark:bg-orange-900 rounded-2xl">
+                    <Bike class="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <h2 class="ml-4 text-3xl font-bold text-gray-900 dark:text-gray-100">Sport</h2>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-300 mb-6 text-lg">
+                  Équipements de sport pour toutes vos activités : ski, vélos, camping, fitness et plus.
+                </p>
+
+                <div class="space-y-3 mb-8">
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Matériel de qualité</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Toutes saisons</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Livraison possible</span>
+                  </div>
+                </div>
+
+                <Link 
+                  :href="route('equipment.category', 'sports_equipment')"
+                  class="block w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-4 px-6 rounded-xl text-center transition-colors duration-200 group"
+                >
+                  <span class="flex items-center justify-center">
+                    Explorer le sport
+                    <ArrowRight class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            <!-- Tools & Materials Card -->
+            <div class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div class="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              <div class="p-8">
+                <div class="flex items-center mb-6">
+                  <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-2xl">
+                    <Wrench class="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h2 class="ml-4 text-3xl font-bold text-gray-900 dark:text-gray-100">Outils</h2>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-300 mb-6 text-lg">
+                  Outils et matériel pour vos projets : bricolage, jardinage, événements et plus.
+                </p>
+
+                <div class="space-y-3 mb-8">
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Outils professionnels</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Instructions incluses</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Location flexible</span>
+                  </div>
+                </div>
+
+                <Link 
+                  :href="route('equipment.category', 'tools_material')"
+                  class="block w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-4 px-6 rounded-xl text-center transition-colors duration-200 group"
+                >
+                  <span class="flex items-center justify-center">
+                    Explorer les outils
+                    <ArrowRight class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            <!-- Boats Card -->
+            <div class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div class="absolute inset-0 bg-gradient-to-br from-cyan-500 to-cyan-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              <div class="p-8">
+                <div class="flex items-center mb-6">
+                  <div class="p-3 bg-cyan-100 dark:bg-cyan-900 rounded-2xl">
+                    <Ship class="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <h2 class="ml-4 text-3xl font-bold text-gray-900 dark:text-gray-100">Bateaux</h2>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-300 mb-6 text-lg">
+                  Embarcations pour vos sorties nautiques : bateaux, jet-skis, voiliers et kayaks.
+                </p>
+
+                <div class="space-y-3 mb-8">
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Flotte variée</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Équipement de sécurité</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Capitaines disponibles</span>
+                  </div>
+                </div>
+
+                <Link 
+                  :href="route('equipment.category', 'boats')"
+                  class="block w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-4 px-6 rounded-xl text-center transition-colors duration-200 group"
+                >
+                  <span class="flex items-center justify-center">
+                    Explorer les bateaux
+                    <ArrowRight class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            <!-- Spaces Card -->
+            <div class="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div class="absolute inset-0 bg-gradient-to-br from-indigo-500 to-indigo-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              <div class="p-8">
+                <div class="flex items-center mb-6">
+                  <div class="p-3 bg-indigo-100 dark:bg-indigo-900 rounded-2xl">
+                    <MapPin class="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <h2 class="ml-4 text-3xl font-bold text-gray-900 dark:text-gray-100">Espaces</h2>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-300 mb-6 text-lg">
+                  Espaces pour vos besoins : salles de réunion, stockage, ateliers et studios.
+                </p>
+
+                <div class="space-y-3 mb-8">
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Espaces équipés</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Accès sécurisé</span>
+                  </div>
+                  <div class="flex items-center text-gray-700 dark:text-gray-300">
+                    <Check class="w-5 h-5 text-green-500 mr-3" />
+                    <span>Réservation à l'heure</span>
+                  </div>
+                </div>
+
+                <Link 
+                  :href="route('equipment.category', 'spaces')"
+                  class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-4 px-6 rounded-xl text-center transition-colors duration-200 group"
+                >
+                  <span class="flex items-center justify-center">
+                    Explorer les espaces
                     <ArrowRight class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
                   </span>
                 </Link>
@@ -219,5 +387,5 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Link } from '@inertiajs/vue3'
-import { Car, Home, Check, ArrowRight, Shield, MapPin, Users } from 'lucide-vue-next'
+import { Car, Home, Check, ArrowRight, Shield, MapPin, Users, Bike, Wrench, Ship } from 'lucide-vue-next'
 </script>

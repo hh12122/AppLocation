@@ -48,6 +48,39 @@ Route::middleware(['auth'])->group(function () {
         ->name('property-bookings.management');
 });
 
+// Equipment routes
+Route::resource('equipment', App\Http\Controllers\EquipmentController::class);
+Route::get('equipment/category/{category}', [App\Http\Controllers\EquipmentController::class, 'category'])
+    ->name('equipment.category');
+Route::get('my-equipment', [App\Http\Controllers\EquipmentController::class, 'myEquipment'])
+    ->middleware(['auth'])->name('equipment.my');
+
+// Equipment bookings routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('equipment/{equipment}/book', [App\Http\Controllers\EquipmentBookingController::class, 'create'])
+        ->name('equipment-bookings.create');
+    Route::post('equipment/{equipment}/book', [App\Http\Controllers\EquipmentBookingController::class, 'store'])
+        ->name('equipment-bookings.store');
+    Route::get('equipment-bookings/{booking}', [App\Http\Controllers\EquipmentBookingController::class, 'show'])
+        ->name('equipment-bookings.show');
+    Route::post('equipment-bookings/{booking}/confirm', [App\Http\Controllers\EquipmentBookingController::class, 'confirm'])
+        ->name('equipment-bookings.confirm');
+    Route::post('equipment-bookings/{booking}/cancel', [App\Http\Controllers\EquipmentBookingController::class, 'cancel'])
+        ->name('equipment-bookings.cancel');
+    Route::post('equipment-bookings/{booking}/ready', [App\Http\Controllers\EquipmentBookingController::class, 'markAsReady'])
+        ->name('equipment-bookings.ready');
+    Route::post('equipment-bookings/{booking}/delivered', [App\Http\Controllers\EquipmentBookingController::class, 'markAsDelivered'])
+        ->name('equipment-bookings.delivered');
+    Route::post('equipment-bookings/{booking}/returned', [App\Http\Controllers\EquipmentBookingController::class, 'markAsReturned'])
+        ->name('equipment-bookings.returned');
+    Route::post('equipment-bookings/{booking}/extension', [App\Http\Controllers\EquipmentBookingController::class, 'requestExtension'])
+        ->name('equipment-bookings.extension');
+    Route::get('my-equipment-bookings', [App\Http\Controllers\EquipmentBookingController::class, 'myBookings'])
+        ->name('equipment-bookings.my');
+    Route::get('equipment-bookings-management', [App\Http\Controllers\EquipmentBookingController::class, 'equipmentBookings'])
+        ->name('equipment-bookings.management');
+});
+
 // Rentals routes
 Route::resource('rentals', RentalController::class)->except(['edit', 'update', 'destroy']);
 Route::get('rentals/create/{vehicle}', [RentalController::class, 'create'])
@@ -85,7 +118,12 @@ Route::middleware('auth')->group(function () {
     Route::put('favorites/{favorite}', [FavoriteController::class, 'update'])->name('favorites.update');
     Route::delete('favorites/{vehicleId}', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
     Route::post('favorites/toggle', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
-    Route::get('favorites/check/{vehicleId}', [FavoriteController::class, 'check'])->name('favorites.check');
+    
+    // Item-agnostic check route
+    Route::get('favorites/check/{itemId}', [FavoriteController::class, 'check'])->name('favorites.check');
+    
+    // Legacy vehicle-specific route for backwards compatibility
+    Route::get('favorites/check-vehicle/{vehicleId}', [FavoriteController::class, 'checkVehicle'])->name('favorites.check.vehicle');
 });
 
 // License verification routes

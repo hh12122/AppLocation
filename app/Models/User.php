@@ -96,6 +96,16 @@ class User extends Authenticatable
         return $this->hasMany(PropertyBooking::class, 'guest_id');
     }
 
+    public function equipment()
+    {
+        return $this->hasMany(Equipment::class, 'owner_id');
+    }
+
+    public function equipmentBookings()
+    {
+        return $this->hasMany(EquipmentBooking::class, 'renter_id');
+    }
+
     public function rentals()
     {
         return $this->hasMany(Rental::class, 'renter_id');
@@ -220,6 +230,30 @@ class User extends Authenticatable
         return PropertyBooking::whereHas('property', function ($query) {
             $query->where('owner_id', $this->id);
         })->where('status', 'completed')->sum('host_payout');
+    }
+
+    public function getActiveEquipmentCount(): int
+    {
+        return $this->equipment()->active()->count();
+    }
+
+    public function getTotalEquipmentBookings(): int
+    {
+        return EquipmentBooking::whereHas('equipment', function ($query) {
+            $query->where('owner_id', $this->id);
+        })->count();
+    }
+
+    public function getEquipmentEarnings(): float
+    {
+        return EquipmentBooking::whereHas('equipment', function ($query) {
+            $query->where('owner_id', $this->id);
+        })->where('status', 'completed')->sum('owner_payout');
+    }
+
+    public function canListEquipment(): bool
+    {
+        return $this->hasValidLicense() && $this->is_verified;
     }
 
     public function hasFavorited(Vehicle $vehicle): bool
