@@ -24,7 +24,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Payment Form -->
           <div class="lg:col-span-2">
-            <PaymentForm :rental="rental" />
+            <PaymentForm :rental="rental" :available-credits="availableCredits" :referral-stats="referralStats" />
           </div>
 
           <!-- Rental Summary -->
@@ -181,6 +181,15 @@ interface Props {
         name: string
       }
     }
+  }
+  availableCredits: number
+  referralStats: {
+    total_referrals: number
+    successful_referrals: number
+    pending_referrals: number
+    total_earned: number
+    available_credits: number
+    referral_rate: number
   }
 }
 

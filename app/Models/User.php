@@ -41,6 +41,11 @@ class User extends Authenticatable
         'is_verified',
         'rating',
         'rating_count',
+        'referral_code',
+        'referred_by',
+        'referral_credits',
+        'referral_count',
+        'referral_code_generated_at',
     ];
 
     /**
@@ -70,6 +75,8 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
             'is_verified' => 'boolean',
             'rating' => 'decimal:2',
+            'referral_credits' => 'decimal:2',
+            'referral_code_generated_at' => 'datetime',
         ];
     }
 
@@ -127,6 +134,27 @@ class User extends Authenticatable
         return $this->hasMany(Message::class);
     }
 
+    // Referral relations
+    public function referredBy()
+    {
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
+    public function receivedReferrals()
+    {
+        return $this->hasMany(Referral::class, 'referred_user_id');
+    }
+
+    public function referralRewards()
+    {
+        return $this->hasMany(ReferralReward::class);
+    }
+
     // Helpers
     public function getAverageRating()
     {
@@ -163,5 +191,126 @@ class User extends Authenticatable
     public function hasFavorited(Vehicle $vehicle): bool
     {
         return $this->favorites()->where('vehicle_id', $vehicle->id)->exists();
+    }
+
+    // Referral methods
+    public function generateReferralCode(): string
+    {
+        if (!$this->referral_code) {
+            do {
+                $code = 'CAR' . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8));
+            } while (static::where('referral_code', $code)->exists());
+
+            $this->update([
+                'referral_code' => $code,
+                'referral_code_generated_at' => now()
+            ]);
+        }
+
+        return $this->referral_code;
+    }
+
+    public function getReferralUrl(): string
+    {
+        $code = $this->generateReferralCode();
+        return route('register') . '?ref=' . $code;
+    }
+
+    public function hasReferralCode(): bool
+    {
+        return !empty($this->referral_code);
+    }
+
+    public function wasReferred(): bool
+    {
+        return !empty($this->referred_by);
+    }
+
+    public function getAvailableCredits(): float
+    {
+        return (float) $this->referralRewards()
+            ->available()
+            ->sum('amount');
+    }
+
+    public function getTotalEarnedCredits(): float
+    {
+        return (float) $this->referralRewards()
+            ->where('reward_type', 'credit')
+            ->whereIn('status', ['awarded', 'used'])
+            ->sum('amount');
+    }
+
+    public function getSuccessfulReferralsCount(): int
+    {
+        return $this->referrals()->completed()->count();
+    }
+
+    public function canUseReferralCredits(float $amount): bool
+    {
+        return $this->getAvailableCredits() >= $amount;
+    }
+
+    public function useReferralCredits(float $amount, Rental $rental = null): bool
+    {
+        if (!$this->canUseReferralCredits($amount)) {
+            return false;
+        }
+
+        $remainingAmount = $amount;
+        $rewards = $this->referralRewards()
+            ->available()
+            ->where('reward_type', 'credit')
+            ->orderBy('expires_at', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        foreach ($rewards as $reward) {
+            if ($remainingAmount <= 0) break;
+
+            $usedAmount = min($reward->amount, $remainingAmount);
+            
+            if ($usedAmount == $reward->amount) {
+                // Use the entire reward
+                $reward->markAsUsed($rental);
+            } else {
+                // Partially use the reward (split it)
+                $reward->update(['amount' => $reward->amount - $usedAmount]);
+                
+                // Create a new "used" reward for the used portion
+                ReferralReward::create([
+                    'user_id' => $this->id,
+                    'referral_id' => $reward->referral_id,
+                    'reward_type' => 'credit',
+                    'amount' => $usedAmount,
+                    'status' => 'used',
+                    'title' => $reward->title,
+                    'description' => 'Utilisation partielle: ' . $reward->description,
+                    'used_at' => now(),
+                    'used_in_rental_id' => $rental?->id,
+                ]);
+            }
+
+            $remainingAmount -= $usedAmount;
+        }
+
+        // Update user's available credits
+        $this->decrement('referral_credits', $amount);
+
+        return true;
+    }
+
+    public function getReferralStats(): array
+    {
+        return [
+            'total_referrals' => $this->referrals()->count(),
+            'successful_referrals' => $this->getSuccessfulReferralsCount(),
+            'pending_referrals' => $this->referrals()->pending()->count(),
+            'total_earned' => $this->getTotalEarnedCredits(),
+            'available_credits' => $this->getAvailableCredits(),
+            'referral_rate' => $this->referrals()->count() > 0 
+                ? ($this->getSuccessfulReferralsCount() / $this->referrals()->count()) * 100 
+                : 0,
+        ];
     }
 }

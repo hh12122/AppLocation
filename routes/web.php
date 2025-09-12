@@ -109,5 +109,20 @@ Route::middleware(['auth'])->group(function () {
     Route::post('chat/{conversation}/archive', [\App\Http\Controllers\ChatController::class, 'archive'])->name('chat.archive');
 });
 
+// Referral routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('referrals', [\App\Http\Controllers\ReferralController::class, 'index'])->name('referrals.index');
+    Route::get('referrals/rewards', [\App\Http\Controllers\ReferralController::class, 'rewards'])->name('referrals.rewards');
+    Route::get('referrals/leaderboard', [\App\Http\Controllers\ReferralController::class, 'leaderboard'])->name('referrals.leaderboard');
+    Route::post('referrals/generate-code', [\App\Http\Controllers\ReferralController::class, 'generateCode'])->name('referrals.generate-code');
+    Route::get('referrals/stats', [\App\Http\Controllers\ReferralController::class, 'getStats'])->name('referrals.stats');
+    Route::post('referrals/share', [\App\Http\Controllers\ReferralController::class, 'share'])->name('referrals.share');
+});
+
+// Public referral routes
+Route::post('referrals/validate-code', [\App\Http\Controllers\ReferralController::class, 'validateCode'])->name('referrals.validate-code');
+Route::post('referrals/process', [\App\Http\Controllers\ReferralController::class, 'processReferral'])->name('referrals.process');
+Route::post('referrals/mark-conversion', [\App\Http\Controllers\ReferralController::class, 'markConversion'])->name('referrals.mark-conversion');
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

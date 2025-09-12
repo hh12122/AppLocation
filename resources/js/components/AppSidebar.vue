@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare } from 'lucide-vue-next';
+import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -38,6 +38,11 @@ const mainNavItems: NavItem[] = [
         title: 'Mes favoris',
         href: '/favorites',
         icon: Heart,
+    },
+    {
+        title: 'Parrainage',
+        href: '/referrals',
+        icon: Users,
     },
     {
         title: 'Mes paiements',

@@ -20,6 +20,8 @@ class Payment extends Model
         'gateway_fee',
         'owner_payout',
         'refunded_amount',
+        'referral_credits_used',
+        'final_amount',
         'currency',
         'stripe_payment_intent_id',
         'stripe_charge_id',
@@ -82,6 +84,30 @@ class Payment extends Model
     public function getFormattedOwnerPayoutAttribute(): string
     {
         return number_format($this->owner_payout / 100, 2, ',', ' ') . ' ' . $this->currency;
+    }
+
+    /**
+     * Get formatted referral credits used.
+     */
+    public function getFormattedReferralCreditsUsedAttribute(): string
+    {
+        return number_format($this->referral_credits_used / 100, 2, ',', ' ') . ' ' . $this->currency;
+    }
+
+    /**
+     * Get formatted final amount.
+     */
+    public function getFormattedFinalAmountAttribute(): string
+    {
+        return number_format($this->final_amount / 100, 2, ',', ' ') . ' ' . $this->currency;
+    }
+
+    /**
+     * Check if payment used referral credits.
+     */
+    public function usedReferralCredits(): bool
+    {
+        return $this->referral_credits_used > 0;
     }
 
     /**

@@ -84,8 +84,12 @@ class PaymentController extends Controller
                 ->with('message', 'Cette location a déjà été payée.');
         }
 
+        $user = Auth::user();
+        
         return Inertia::render('Payment/Form', [
             'rental' => $rental->load('vehicle'),
+            'availableCredits' => $user->getAvailableCredits(),
+            'referralStats' => $user->getReferralStats(),
         ]);
     }
 
@@ -97,13 +101,15 @@ class PaymentController extends Controller
         $request->validate([
             'rental_id' => 'required|exists:rentals,id',
             'amount' => 'required|integer|min:50', // Minimum 50 cents
+            'referral_credits' => 'nullable|numeric|min:0',
         ]);
 
         try {
             $rental = Rental::findOrFail($request->rental_id);
+            $user = Auth::user();
 
             // Verify user owns this rental
-            if ($rental->renter_id !== Auth::id()) {
+            if ($rental->renter_id !== $user->id) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Unauthorized access to this rental.',
@@ -118,9 +124,61 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            $result = $this->stripeService->createPaymentIntent($rental, $request->amount);
+            $originalAmount = $request->amount;
+            $referralCreditsUsed = 0;
+            $finalAmount = $originalAmount;
 
-            return response()->json($result);
+            // Apply referral credits if requested
+            if ($request->referral_credits && $request->referral_credits > 0) {
+                $creditsToUse = min($request->referral_credits, $user->getAvailableCredits());
+                $creditsToUse = min($creditsToUse, $originalAmount / 100); // Convert cents to euros
+                
+                if ($creditsToUse > 0 && $user->canUseReferralCredits($creditsToUse)) {
+                    $referralCreditsUsed = $creditsToUse;
+                    $finalAmount = max(50, $originalAmount - ($creditsToUse * 100)); // Ensure minimum 50 cents
+                }
+            }
+
+            // If the final amount is 0 or very small, handle as free payment
+            if ($finalAmount <= 0) {
+                // Use all credits to cover the payment
+                if ($user->useReferralCredits($referralCreditsUsed, $rental)) {
+                    // Mark rental as paid
+                    $rental->update(['payment_status' => 'paid']);
+                    
+                    // Create a payment record
+                    $payment = Payment::create([
+                        'rental_id' => $rental->id,
+                        'user_id' => $user->id,
+                        'amount' => $originalAmount,
+                        'referral_credits_used' => $referralCreditsUsed * 100, // Store in cents
+                        'final_amount' => 0,
+                        'payment_method' => 'referral_credits',
+                        'status' => 'completed',
+                        'paid_at' => now(),
+                    ]);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'payment_covered_by_credits' => true,
+                        'payment' => $payment,
+                        'message' => 'Paiement effectué entièrement avec vos crédits de parrainage.',
+                    ]);
+                }
+            } else {
+                // Create Stripe payment intent for remaining amount
+                $result = $this->stripeService->createPaymentIntent($rental, $finalAmount, [
+                    'referral_credits_used' => $referralCreditsUsed,
+                    'original_amount' => $originalAmount,
+                ]);
+
+                if ($result['success'] && $referralCreditsUsed > 0) {
+                    // Use the referral credits
+                    $user->useReferralCredits($referralCreditsUsed, $rental);
+                }
+
+                return response()->json($result);
+            }
 
         } catch (\Exception $e) {
             Log::error('Stripe payment intent creation failed: ' . $e->getMessage());
@@ -140,13 +198,15 @@ class PaymentController extends Controller
         $request->validate([
             'rental_id' => 'required|exists:rentals,id',
             'amount' => 'required|integer|min:50',
+            'referral_credits' => 'nullable|numeric|min:0',
         ]);
 
         try {
             $rental = Rental::findOrFail($request->rental_id);
+            $user = Auth::user();
 
             // Verify user owns this rental
-            if ($rental->renter_id !== Auth::id()) {
+            if ($rental->renter_id !== $user->id) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Unauthorized access to this rental.',
@@ -161,9 +221,61 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            $result = $this->paypalService->createOrder($rental, $request->amount);
+            $originalAmount = $request->amount;
+            $referralCreditsUsed = 0;
+            $finalAmount = $originalAmount;
 
-            return response()->json($result);
+            // Apply referral credits if requested
+            if ($request->referral_credits && $request->referral_credits > 0) {
+                $creditsToUse = min($request->referral_credits, $user->getAvailableCredits());
+                $creditsToUse = min($creditsToUse, $originalAmount / 100); // Convert cents to euros
+                
+                if ($creditsToUse > 0 && $user->canUseReferralCredits($creditsToUse)) {
+                    $referralCreditsUsed = $creditsToUse;
+                    $finalAmount = max(50, $originalAmount - ($creditsToUse * 100)); // Ensure minimum 50 cents
+                }
+            }
+
+            // If the final amount is 0 or very small, handle as free payment
+            if ($finalAmount <= 0) {
+                // Use all credits to cover the payment
+                if ($user->useReferralCredits($referralCreditsUsed, $rental)) {
+                    // Mark rental as paid
+                    $rental->update(['payment_status' => 'paid']);
+                    
+                    // Create a payment record
+                    $payment = Payment::create([
+                        'rental_id' => $rental->id,
+                        'user_id' => $user->id,
+                        'amount' => $originalAmount,
+                        'referral_credits_used' => $referralCreditsUsed * 100, // Store in cents
+                        'final_amount' => 0,
+                        'payment_method' => 'referral_credits',
+                        'status' => 'completed',
+                        'paid_at' => now(),
+                    ]);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'payment_covered_by_credits' => true,
+                        'payment' => $payment,
+                        'message' => 'Paiement effectué entièrement avec vos crédits de parrainage.',
+                    ]);
+                }
+            } else {
+                // Create PayPal order for remaining amount
+                $result = $this->paypalService->createOrder($rental, $finalAmount, [
+                    'referral_credits_used' => $referralCreditsUsed,
+                    'original_amount' => $originalAmount,
+                ]);
+
+                if ($result['success'] && $referralCreditsUsed > 0) {
+                    // Use the referral credits
+                    $user->useReferralCredits($referralCreditsUsed, $rental);
+                }
+
+                return response()->json($result);
+            }
 
         } catch (\Exception $e) {
             Log::error('PayPal order creation failed: ' . $e->getMessage());
