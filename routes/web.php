@@ -189,6 +189,37 @@ Route::post('referrals/validate-code', [\App\Http\Controllers\ReferralController
 Route::post('referrals/process', [\App\Http\Controllers\ReferralController::class, 'processReferral'])->name('referrals.process');
 Route::post('referrals/mark-conversion', [\App\Http\Controllers\ReferralController::class, 'markConversion'])->name('referrals.mark-conversion');
 
+// Localization routes
+Route::post('localization/change-locale', [\App\Http\Controllers\LocalizationController::class, 'changeLocale'])
+    ->name('localization.change-locale');
+Route::get('api/localization/languages', [\App\Http\Controllers\LocalizationController::class, 'getLanguages'])
+    ->name('localization.languages');
+Route::get('api/localization/translations', [\App\Http\Controllers\LocalizationController::class, 'getTranslations'])
+    ->name('localization.translations');
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('localization/preferences', [\App\Http\Controllers\LocalizationController::class, 'updatePreferences'])
+        ->name('localization.preferences');
+});
+
+// Admin localization routes
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('translations', [\App\Http\Controllers\LocalizationController::class, 'manageTranslations'])
+        ->name('admin.translations');
+    Route::post('translations/update', [\App\Http\Controllers\LocalizationController::class, 'updateTranslation'])
+        ->name('admin.translations.update');
+    Route::post('translations/import', [\App\Http\Controllers\LocalizationController::class, 'importTranslations'])
+        ->name('admin.translations.import');
+    Route::get('translations/export', [\App\Http\Controllers\LocalizationController::class, 'exportTranslations'])
+        ->name('admin.translations.export');
+    Route::post('languages/add', [\App\Http\Controllers\LocalizationController::class, 'addLanguage'])
+        ->name('admin.languages.add');
+    Route::post('languages/{language}/toggle', [\App\Http\Controllers\LocalizationController::class, 'toggleLanguage'])
+        ->name('admin.languages.toggle');
+    Route::post('languages/{language}/default', [\App\Http\Controllers\LocalizationController::class, 'setDefaultLanguage'])
+        ->name('admin.languages.default');
+});
+
 // AI Recommendations routes
 Route::prefix('api/ai')->middleware(['auth'])->group(function () {
     Route::get('recommendations', [\App\Http\Controllers\AIRecommendationController::class, 'getPersonalizedRecommendations']);

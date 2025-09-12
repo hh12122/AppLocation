@@ -6,6 +6,7 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { initializeTheme } from './composables/useAppearance';
+import i18n from './plugins/i18n';
 import echo from './echo';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -16,7 +17,8 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) })
             .use(plugin)
-            .use(ZiggyVue);
+            .use(ZiggyVue)
+            .use(i18n);
         
         // Make Echo available globally
         app.config.globalProperties.$echo = echo;
