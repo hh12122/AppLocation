@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users } from 'lucide-vue-next';
+import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -15,9 +15,14 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Rechercher',
+        title: 'Véhicules',
         href: '/vehicles',
-        icon: Search,
+        icon: Car,
+    },
+    {
+        title: 'Propriétés',
+        href: '/properties',
+        icon: Home,
     },
     {
         title: 'Mes véhicules',
@@ -25,8 +30,18 @@ const mainNavItems: NavItem[] = [
         icon: Car,
     },
     {
+        title: 'Mes propriétés',
+        href: '/my-properties',
+        icon: Building,
+    },
+    {
         title: 'Mes réservations',
         href: '/my-rentals',
+        icon: Calendar,
+    },
+    {
+        title: 'Mes séjours',
+        href: '/my-property-bookings',
         icon: Calendar,
     },
     {

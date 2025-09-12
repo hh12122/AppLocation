@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return redirect()->route('vehicles.index');
+    return Inertia::render('Home');
 })->name('home');
 
 Route::get('dashboard', function () {
@@ -20,6 +20,33 @@ Route::get('dashboard', function () {
 Route::resource('vehicles', VehicleController::class);
 Route::get('my-vehicles', [VehicleController::class, 'myVehicles'])
     ->middleware(['auth'])->name('vehicles.my');
+
+// Properties routes
+Route::resource('properties', App\Http\Controllers\PropertyController::class);
+Route::get('my-properties', [App\Http\Controllers\PropertyController::class, 'myProperties'])
+    ->middleware(['auth'])->name('properties.my');
+
+// Property bookings routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('properties/{property}/book', [App\Http\Controllers\PropertyBookingController::class, 'create'])
+        ->name('property-bookings.create');
+    Route::post('properties/{property}/book', [App\Http\Controllers\PropertyBookingController::class, 'store'])
+        ->name('property-bookings.store');
+    Route::get('property-bookings/{booking}', [App\Http\Controllers\PropertyBookingController::class, 'show'])
+        ->name('property-bookings.show');
+    Route::post('property-bookings/{booking}/confirm', [App\Http\Controllers\PropertyBookingController::class, 'confirm'])
+        ->name('property-bookings.confirm');
+    Route::post('property-bookings/{booking}/cancel', [App\Http\Controllers\PropertyBookingController::class, 'cancel'])
+        ->name('property-bookings.cancel');
+    Route::post('property-bookings/{booking}/checkin', [App\Http\Controllers\PropertyBookingController::class, 'checkIn'])
+        ->name('property-bookings.checkin');
+    Route::post('property-bookings/{booking}/checkout', [App\Http\Controllers\PropertyBookingController::class, 'checkOut'])
+        ->name('property-bookings.checkout');
+    Route::get('my-property-bookings', [App\Http\Controllers\PropertyBookingController::class, 'myBookings'])
+        ->name('property-bookings.my');
+    Route::get('property-bookings-management', [App\Http\Controllers\PropertyBookingController::class, 'propertyBookings'])
+        ->name('property-bookings.management');
+});
 
 // Rentals routes
 Route::resource('rentals', RentalController::class)->except(['edit', 'update', 'destroy']);
