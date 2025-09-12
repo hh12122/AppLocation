@@ -37,6 +37,8 @@ Route::get('my-rentals', [RentalController::class, 'myRentals'])
     ->middleware(['auth'])->name('rentals.my');
 Route::get('my-bookings', [RentalController::class, 'myBookings'])
     ->middleware(['auth'])->name('rentals.bookings');
+Route::get('rentals/{rental}/contract', [RentalController::class, 'exportContract'])
+    ->middleware(['auth'])->name('rentals.contract');
 
 // Reviews routes
 Route::resource('reviews', ReviewController::class);

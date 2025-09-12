@@ -397,6 +397,16 @@ const getPaymentStatusColor = (status: string): string => {
                                         Laisser un avis
                                     </Link>
 
+                                    <!-- Download Contract button -->
+                                    <a
+                                        v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
+                                        :href="route('rentals.contract', rental.id)"
+                                        target="_blank"
+                                        class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 text-center block"
+                                    >
+                                        📄 Télécharger le contrat PDF
+                                    </a>
+
                                     <!-- Contact buttons -->
                                     <div v-if="rental.status === 'confirmed' || rental.status === 'active'" class="pt-2">
                                         <p class="text-sm text-gray-600 mb-2">Contacter :</p>

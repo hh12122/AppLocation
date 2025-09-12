@@ -199,6 +199,14 @@ const stats = {
                                         >
                                             Voir détails
                                         </Link>
+                                        <a
+                                            v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
+                                            :href="route('rentals.contract', rental.id)"
+                                            target="_blank"
+                                            class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                                        >
+                                            📄 Contrat PDF
+                                        </a>
                                         <Link 
                                             :href="route('vehicles.show', rental.vehicle.id)"
                                             class="text-green-600 hover:text-green-800 text-sm font-medium"

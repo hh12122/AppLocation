@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Rental;
 use App\Models\Vehicle;
+use App\Services\RentalContractService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -235,5 +236,20 @@ class RentalController extends Controller
         return Inertia::render('Rentals/MyBookings', [
             'rentals' => $rentals
         ]);
+    }
+    
+    public function exportContract(Rental $rental, RentalContractService $contractService)
+    {
+        $this->authorize('view', $rental);
+        
+        // Only allow export for confirmed, active or completed rentals
+        if (!in_array($rental->status, ['confirmed', 'active', 'completed'])) {
+            abort(403, 'Le contrat ne peut être exporté que pour les locations confirmées, actives ou complétées.');
+        }
+        
+        $pdf = $contractService->generateContract($rental);
+        $filename = $contractService->getContractFilename($rental);
+        
+        return $pdf->download($filename);
     }
 }
