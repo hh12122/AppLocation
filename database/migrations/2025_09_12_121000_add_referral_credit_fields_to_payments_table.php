@@ -15,14 +15,20 @@ return new class extends Migration
             // Referral credit fields
             $table->integer('referral_credits_used')->default(0)->after('refunded_amount'); // Amount of referral credits used in cents
             $table->integer('final_amount')->default(0)->after('referral_credits_used'); // Final amount charged after credits in cents
-            
+
             // Update payment method enum to include referral credits
             $table->dropIndex(['payment_method']);
         });
-        
-        // Update payment method enum to include referral_credits
-        DB::statement("ALTER TABLE payments MODIFY COLUMN payment_method ENUM('stripe', 'paypal', 'cash', 'referral_credits') DEFAULT 'stripe'");
-        
+
+        Schema::dropIfExists('payments');
+
+        Schema::create('payments', function (Blueprint $table) {
+            $table->id();
+            $table->string('payment_method')->default('stripe'); // use string instead of ENUM for SQLite
+            // add other fields you need
+            $table->timestamps();
+        });
+
         Schema::table('payments', function (Blueprint $table) {
             // Recreate index
             $table->index('payment_method');
@@ -38,10 +44,10 @@ return new class extends Migration
             $table->dropColumn(['referral_credits_used', 'final_amount']);
             $table->dropIndex(['payment_method']);
         });
-        
+
         // Revert payment method enum
         DB::statement("ALTER TABLE payments MODIFY COLUMN payment_method ENUM('stripe', 'paypal', 'cash') DEFAULT 'stripe'");
-        
+
         Schema::table('payments', function (Blueprint $table) {
             $table->index('payment_method');
         });
