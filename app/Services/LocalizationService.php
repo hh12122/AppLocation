@@ -13,7 +13,7 @@ class LocalizationService
 {
     private array $supportedLocales = ['fr', 'en', 'es', 'de', 'it', 'ar'];
     private string $defaultLocale = 'fr';
-    
+
     /**
      * Get current locale
      */
@@ -23,14 +23,14 @@ class LocalizationService
         if (Session::has('locale')) {
             return Session::get('locale');
         }
-        
+
         if (Auth::check() && Auth::user()->locale) {
             return Auth::user()->locale;
         }
-        
+
         return $this->detectBrowserLocale() ?: $this->defaultLocale;
     }
-    
+
     /**
      * Set locale for the current session
      */
@@ -39,16 +39,16 @@ class LocalizationService
         if (!in_array($locale, $this->supportedLocales)) {
             $locale = $this->defaultLocale;
         }
-        
+
         App::setLocale($locale);
         Session::put('locale', $locale);
-        
+
         // Update user preference if logged in
         if (Auth::check()) {
             Auth::user()->update(['locale' => $locale]);
         }
     }
-    
+
     /**
      * Detect browser language
      */
@@ -57,19 +57,19 @@ class LocalizationService
         if (!isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
             return null;
         }
-        
+
         $languages = explode(',', $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-        
+
         foreach ($languages as $lang) {
             $locale = substr($lang, 0, 2);
             if (in_array($locale, $this->supportedLocales)) {
                 return $locale;
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Get all active languages
      */
@@ -82,25 +82,25 @@ class LocalizationService
                 ->toArray();
         });
     }
-    
+
     /**
      * Get translations for a specific locale and group
      */
     public function getTranslations(string $locale, string $group = '*'): array
     {
         $cacheKey = "translations.{$locale}.{$group}";
-        
+
         return Cache::remember($cacheKey, 3600, function () use ($locale, $group) {
             $query = Translation::where('locale', $locale);
-            
+
             if ($group !== '*') {
                 $query->where('group', $group);
             }
-            
+
             return $query->pluck('value', 'key')->toArray();
         });
     }
-    
+
     /**
      * Save or update a translation
      */
@@ -116,35 +116,35 @@ class LocalizationService
                 'value' => $value,
             ]
         );
-        
+
         // Clear cache
         Cache::forget("translations.{$locale}.{$group}");
         Cache::forget("translations.{$locale}.*");
     }
-    
+
     /**
      * Get translated content for models
      */
     public function translateModel($model, string $field, ?string $locale = null): string
     {
         $locale = $locale ?: $this->getCurrentLocale();
-        
+
         // Check if model has translations
         if (method_exists($model, 'translations')) {
             $translation = $model->translations()
                 ->where('locale', $locale)
                 ->where('field', $field)
                 ->first();
-            
+
             if ($translation) {
                 return $translation->value;
             }
         }
-        
+
         // Fallback to default field value
         return $model->{$field} ?? '';
     }
-    
+
     /**
      * Format date according to locale
      */
@@ -152,16 +152,16 @@ class LocalizationService
     {
         $locale = $this->getCurrentLocale();
         $userFormat = Auth::check() ? Auth::user()->date_format : null;
-        
+
         $format = $format ?: $userFormat ?: $this->getDateFormat($locale);
-        
+
         if (is_string($date)) {
             $date = new \DateTime($date);
         }
-        
+
         return $date->format($format);
     }
-    
+
     /**
      * Format currency according to locale
      */
@@ -169,24 +169,24 @@ class LocalizationService
     {
         $locale = $this->getCurrentLocale();
         $currency = $currency ?: (Auth::check() ? Auth::user()->currency : 'EUR');
-        
+
         $formatter = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
         return $formatter->formatCurrency($amount, $currency);
     }
-    
+
     /**
      * Format number according to locale
      */
     public function formatNumber(float $number, int $decimals = 0): string
     {
         $locale = $this->getCurrentLocale();
-        
+
         $formatter = new \NumberFormatter($locale, \NumberFormatter::DECIMAL);
         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, $decimals);
-        
+
         return $formatter->format($number);
     }
-    
+
     /**
      * Get date format for locale
      */
@@ -200,10 +200,10 @@ class LocalizationService
             'it' => 'd/m/Y',
             'ar' => 'Y/m/d',
         ];
-        
+
         return $formats[$locale] ?? 'd/m/Y';
     }
-    
+
     /**
      * Get RTL languages
      */
@@ -215,7 +215,7 @@ class LocalizationService
                 ->toArray();
         });
     }
-    
+
     /**
      * Check if current locale is RTL
      */
@@ -224,7 +224,7 @@ class LocalizationService
         $locale = $locale ?: $this->getCurrentLocale();
         return in_array($locale, $this->getRtlLanguages());
     }
-    
+
     /**
      * Get locale info
      */
@@ -232,11 +232,11 @@ class LocalizationService
     {
         return Cache::remember("locale_info.{$locale}", 86400, function () use ($locale) {
             $language = Language::where('code', $locale)->first();
-            
+
             if (!$language) {
                 return null;
             }
-            
+
             return [
                 'code' => $language->code,
                 'name' => $language->name,
@@ -248,7 +248,7 @@ class LocalizationService
             ];
         });
     }
-    
+
     /**
      * Get currency symbol for locale
      */
@@ -262,10 +262,10 @@ class LocalizationService
             'it' => '€',
             'ar' => 'ر.س',
         ];
-        
+
         return $symbols[$locale] ?? '€';
     }
-    
+
     /**
      * Clear all translation caches
      */

@@ -19,11 +19,16 @@ createInertiaApp({
             .use(plugin)
             .use(ZiggyVue)
             .use(i18n);
-        
+
         // Make Echo available globally
         app.config.globalProperties.$echo = echo;
         (window as any).Echo = echo;
-        
+         // update i18n after Inertia provides props
+        const { locale, translations } = props.initialPage.props;
+        if (locale?.current && translations) {
+          i18n.global.locale.value = locale.current;
+          i18n.global.setLocaleMessage(locale.current, translations);
+        }
         app.mount(el);
     },
     progress: {

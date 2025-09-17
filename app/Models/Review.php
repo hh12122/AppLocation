@@ -1,8 +1,8 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Review extends Model
@@ -11,6 +11,8 @@ class Review extends Model
         'rental_id',
         'reviewer_id',
         'reviewee_id',
+        'reviewable_id',
+        'reviewable_type',
         'type',
         'rating',
         'comment',
@@ -26,7 +28,13 @@ class Review extends Model
         ];
     }
 
-    // Relations
+    // Polymorphic relation
+    public function reviewable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    // Other relations
     public function rental(): BelongsTo
     {
         return $this->belongsTo(Rental::class);
@@ -42,27 +50,7 @@ class Review extends Model
         return $this->belongsTo(User::class, 'reviewee_id');
     }
 
-    public function vehicle(): BelongsTo
-    {
-        return $this->belongsTo(Vehicle::class);
-    }
-
     // Helpers
-    public function isVehicleReview(): bool
-    {
-        return $this->type === 'vehicle';
-    }
-
-    public function isOwnerReview(): bool
-    {
-        return $this->type === 'owner';
-    }
-
-    public function isRenterReview(): bool
-    {
-        return $this->type === 'renter';
-    }
-
     public function getStarsDisplay(): string
     {
         return str_repeat('★', $this->rating) . str_repeat('☆', 5 - $this->rating);

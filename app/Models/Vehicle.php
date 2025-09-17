@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Vehicle extends Model
 {
@@ -77,10 +78,14 @@ class Vehicle extends Model
         return $this->hasMany(Rental::class);
     }
 
-    public function reviews(): HasMany
+    public function reviews(): MorphMany
     {
-        return $this->hasMany(Review::class)->where('type', 'vehicle');
+        return $this->morphMany(Review::class, 'reviewable');
     }
+    //public function reviews(): HasMany
+    //{
+       // return $this->hasMany(Review::class)->where('type', 'vehicle');
+    //}
 
     public function favorites()
     {
@@ -104,7 +109,7 @@ class Vehicle extends Model
     // Helpers
     public function getPrimaryImage()
     {
-        return $this->images()->where('is_primary', true)->first() 
+        return $this->images()->where('is_primary', true)->first()
             ?? $this->images()->orderBy('sort_order')->first();
     }
 
@@ -195,10 +200,10 @@ class Vehicle extends Model
 
     public function scopeNearLocation($query, $lat, $lng, $radius)
     {
-        return $query->selectRaw("*, 
-            (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * 
-            cos(radians(longitude) - radians(?)) + 
-            sin(radians(?)) * sin(radians(latitude)))) AS distance", 
+        return $query->selectRaw("*,
+            (6371 * acos(cos(radians(?)) * cos(radians(latitude)) *
+            cos(radians(longitude) - radians(?)) +
+            sin(radians(?)) * sin(radians(latitude)))) AS distance",
             [$lat, $lng, $lat])
             ->having('distance', '<=', $radius)
             ->orderBy('distance');

@@ -109,7 +109,7 @@ const toggleViewMode = (mode: 'grid' | 'map') => {
 
 const searchLocationByAddress = async () => {
     if (!locationSearchText.value.trim()) return
-    
+
     searchingLocation.value = true
     try {
         const results = await geocodeAddress(locationSearchText.value)
@@ -165,7 +165,7 @@ const formatPrice = (price: number) => {
 
 const fuelTypeLabels = {
     gasoline: 'Essence',
-    diesel: 'Diesel', 
+    diesel: 'Diesel',
     electric: 'Électrique',
     hybrid: 'Hybride'
 }
@@ -191,16 +191,16 @@ const transmissionLabels = {
                         <form @submit.prevent="search" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-2">Marque</label>
-                                <Input 
-                                    v-model="searchForm.brand" 
+                                <Input
+                                    v-model="searchForm.brand"
                                     placeholder="Ex: Peugeot, Renault..."
                                 />
                             </div>
-                            
+
                             <div>
                                 <label class="block text-sm font-medium mb-2">Ville</label>
-                                <Input 
-                                    v-model="searchForm.city" 
+                                <Input
+                                    v-model="searchForm.city"
                                     placeholder="Ex: Paris, Lyon..."
                                 />
                             </div>
@@ -213,14 +213,14 @@ const transmissionLabels = {
                                 </label>
                                 <div class="flex gap-2">
                                     <div class="flex-1">
-                                        <Input 
+                                        <Input
                                             v-model="locationSearchText"
                                             placeholder="Tapez une adresse pour rechercher dans un rayon..."
                                             @keyup.enter="searchLocationByAddress"
                                         />
                                     </div>
                                     <div class="w-24">
-                                        <Input 
+                                        <Input
                                             v-model.number="searchForm.radius"
                                             type="number"
                                             min="1"
@@ -229,7 +229,7 @@ const transmissionLabels = {
                                             title="Rayon de recherche en kilomètres"
                                         />
                                     </div>
-                                    <Button 
+                                    <Button
                                         type="button"
                                         @click="searchLocationByAddress"
                                         :disabled="searchingLocation || !locationSearchText.trim()"
@@ -239,7 +239,7 @@ const transmissionLabels = {
                                         <MapPin v-if="!searchingLocation" class="w-4 h-4" />
                                         <span v-else>...</span>
                                     </Button>
-                                    <Button 
+                                    <Button
                                         type="button"
                                         @click="useCurrentLocation"
                                         :disabled="searchingLocation"
@@ -249,7 +249,7 @@ const transmissionLabels = {
                                     >
                                         📍
                                     </Button>
-                                    <Button 
+                                    <Button
                                         v-if="searchForm.latitude && searchForm.longitude"
                                         type="button"
                                         @click="clearLocationFilter"
@@ -267,24 +267,24 @@ const transmissionLabels = {
 
                             <div>
                                 <label class="block text-sm font-medium mb-2">Date de début</label>
-                                <Input 
-                                    v-model="searchForm.start_date" 
+                                <Input
+                                    v-model="searchForm.start_date"
                                     type="date"
                                 />
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium mb-2">Date de fin</label>
-                                <Input 
-                                    v-model="searchForm.end_date" 
+                                <Input
+                                    v-model="searchForm.end_date"
                                     type="date"
                                 />
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium mb-2">Carburant</label>
-                                <select 
-                                    v-model="searchForm.fuel_type" 
+                                <select
+                                    v-model="searchForm.fuel_type"
                                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 >
                                     <option value="">Tous</option>
@@ -297,8 +297,8 @@ const transmissionLabels = {
 
                             <div>
                                 <label class="block text-sm font-medium mb-2">Transmission</label>
-                                <select 
-                                    v-model="searchForm.transmission" 
+                                <select
+                                    v-model="searchForm.transmission"
                                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 >
                                     <option value="">Toutes</option>
@@ -309,19 +309,19 @@ const transmissionLabels = {
 
                             <div>
                                 <label class="block text-sm font-medium mb-2">Places min.</label>
-                                <Input 
-                                    v-model="searchForm.min_seats" 
-                                    type="number" 
-                                    min="1" 
+                                <Input
+                                    v-model="searchForm.min_seats"
+                                    type="number"
+                                    min="1"
                                     max="9"
                                 />
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium mb-2">Prix max. /jour</label>
-                                <Input 
-                                    v-model="searchForm.max_price" 
-                                    type="number" 
+                                <Input
+                                    v-model="searchForm.max_price"
+                                    type="number"
                                     min="1"
                                     placeholder="€"
                                 />
@@ -342,9 +342,9 @@ const transmissionLabels = {
                 <!-- Results -->
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">
-                        {{ props.vehicles.meta.total }} véhicule(s) trouvé(s)
+                        {{ props.vehicles?.total }} véhicule(s) trouvé(s)
                     </h2>
-                    
+
                     <div class="flex items-center gap-4">
                         <!-- View Toggle -->
                         <div class="flex bg-gray-100 rounded-lg p-1">
@@ -352,8 +352,8 @@ const transmissionLabels = {
                                 @click="toggleViewMode('grid')"
                                 :class="[
                                     'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                                    viewMode === 'grid' 
-                                        ? 'bg-white text-gray-900 shadow-sm' 
+                                    viewMode === 'grid'
+                                        ? 'bg-white text-gray-900 shadow-sm'
                                         : 'text-gray-500 hover:text-gray-900'
                                 ]"
                             >
@@ -364,8 +364,8 @@ const transmissionLabels = {
                                 @click="toggleViewMode('map')"
                                 :class="[
                                     'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                                    viewMode === 'map' 
-                                        ? 'bg-white text-gray-900 shadow-sm' 
+                                    viewMode === 'map'
+                                        ? 'bg-white text-gray-900 shadow-sm'
                                         : 'text-gray-500 hover:text-gray-900'
                                 ]"
                             >
@@ -373,10 +373,10 @@ const transmissionLabels = {
                                 Carte
                             </button>
                         </div>
-                        
-                        <Link 
+
+                        <Link
                             v-if="$page.props.auth.user"
-                            :href="route('vehicles.create')" 
+                            :href="route('vehicles.create')"
                             class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
                         >
                             Ajouter mon véhicule
@@ -388,8 +388,8 @@ const transmissionLabels = {
                 <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <Card v-for="vehicle in props.vehicles.data" :key="vehicle.id" class="overflow-hidden hover:shadow-lg transition-shadow">
                         <div class="aspect-video relative">
-                            <img 
-                                :src="getPrimaryImage(vehicle)" 
+                            <img
+                                :src="getPrimaryImage(vehicle)"
                                 :alt="`${vehicle.brand} ${vehicle.model}`"
                                 class="w-full h-full object-cover"
                             />
@@ -397,14 +397,14 @@ const transmissionLabels = {
                                 {{ formatPrice(vehicle.daily_rate) }}/jour
                             </Badge>
                             <div v-if="$page.props.auth.user" class="absolute top-2 left-2">
-                                <FavoriteButton 
-                                    :vehicle-id="vehicle.id" 
+                                <FavoriteButton
+                                    :vehicle-id="vehicle.id"
                                     :initial-is-favorited="props.favoritedVehicleIds?.includes(vehicle.id) || false"
                                     size="sm"
                                 />
                             </div>
                         </div>
-                        
+
                         <CardContent class="p-4">
                             <div class="flex justify-between items-start mb-2">
                                 <h3 class="font-semibold text-lg">
@@ -428,8 +428,8 @@ const transmissionLabels = {
                                 <div class="text-sm text-gray-600">
                                     Par {{ vehicle.owner.name }}
                                 </div>
-                                <Link 
-                                    :href="route('vehicles.show', vehicle.id)" 
+                                <Link
+                                    :href="route('vehicles.show', vehicle.id)"
                                     class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
                                 >
                                     Voir détails

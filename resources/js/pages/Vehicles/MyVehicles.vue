@@ -84,8 +84,8 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                         <h1 class="text-3xl font-bold text-gray-900">Mes véhicules</h1>
                         <p class="text-gray-600 mt-2">Gérez vos véhicules mis en location</p>
                     </div>
-                    <Link 
-                        :href="route('vehicles.create')" 
+                    <Link
+                        :href="route('vehicles.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >
                         Ajouter un véhicule
@@ -96,7 +96,7 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <Card>
                         <CardContent class="p-6">
-                            <div class="text-2xl font-bold text-blue-600">{{ props.vehicles.meta.total }}</div>
+                            <div class="text-2xl font-bold text-blue-600">{{ props.vehicles.meta?.total }}</div>
                             <p class="text-sm text-gray-600">Véhicules total</p>
                         </CardContent>
                     </Card>
@@ -133,7 +133,7 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                             <div class="flex space-x-6">
                                 <!-- Vehicle Image -->
                                 <div class="flex-shrink-0">
-                                    <img 
+                                    <img
                                         :src="getPrimaryImage(vehicle)"
                                         :alt="`${vehicle.brand} ${vehicle.model}`"
                                         class="w-32 h-24 object-cover rounded-lg"
@@ -173,8 +173,8 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                                     <div v-if="vehicle.rentals.length > 0" class="mt-4">
                                         <h4 class="text-sm font-medium text-gray-900 mb-2">Réservations récentes :</h4>
                                         <div class="flex space-x-2">
-                                            <Badge 
-                                                v-for="rental in vehicle.rentals.slice(0, 3)" 
+                                            <Badge
+                                                v-for="rental in vehicle.rentals.slice(0, 3)"
                                                 :key="rental.id"
                                                 variant="outline"
                                                 class="text-xs"
@@ -186,19 +186,19 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
 
                                     <!-- Actions -->
                                     <div class="flex space-x-3 mt-4">
-                                        <Link 
+                                        <Link
                                             :href="route('vehicles.show', vehicle.id)"
                                             class="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                         >
                                             Voir détails
                                         </Link>
-                                        <Link 
+                                        <Link
                                             :href="route('vehicles.edit', vehicle.id)"
                                             class="text-green-600 hover:text-green-800 text-sm font-medium"
                                         >
                                             Modifier
                                         </Link>
-                                        <Link 
+                                        <Link
                                             :href="route('rentals.bookings')"
                                             class="text-purple-600 hover:text-purple-800 text-sm font-medium"
                                         >
@@ -218,7 +218,7 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                     <p class="text-gray-600 mb-6">
                         Vous n'avez pas encore ajouté de véhicule. Commencez par ajouter votre premier véhicule pour commencer à gagner de l'argent.
                     </p>
-                    <Link 
+                    <Link
                         :href="route('vehicles.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >

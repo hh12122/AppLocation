@@ -79,7 +79,7 @@ const getPrimaryImage = (vehicle: Rental['vehicle']) => {
 
 // Calculate stats
 const stats = {
-    total: props.rentals.meta.total,
+    total: props.rentals.meta?.total,
     pending: props.rentals.data.filter(r => r.status === 'pending').length,
     active: props.rentals.data.filter(r => r.status === 'active').length,
     completed: props.rentals.data.filter(r => r.status === 'completed').length,
@@ -99,7 +99,7 @@ const stats = {
                 <div class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-900">Mes réservations</h1>
                     <p class="text-gray-600 mt-2">Suivez l'état de vos locations de véhicules</p>
-                    <Link 
+                    <Link
                         :href="route('vehicles.index')"
                         class="inline-block mt-4 text-blue-600 hover:text-blue-800"
                     >
@@ -148,7 +148,7 @@ const stats = {
                             <div class="flex space-x-6">
                                 <!-- Vehicle Image -->
                                 <div class="flex-shrink-0">
-                                    <img 
+                                    <img
                                         :src="getPrimaryImage(rental.vehicle)"
                                         :alt="`${rental.vehicle.brand} ${rental.vehicle.model}`"
                                         class="w-32 h-24 object-cover rounded-lg"
@@ -193,7 +193,7 @@ const stats = {
 
                                     <!-- Actions -->
                                     <div class="flex space-x-3 mt-4">
-                                        <Link 
+                                        <Link
                                             :href="route('rentals.show', rental.id)"
                                             class="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                         >
@@ -221,13 +221,13 @@ const stats = {
                                                 💬 Chat
                                             </button>
                                         </form>
-                                        <Link 
+                                        <Link
                                             :href="route('vehicles.show', rental.vehicle.id)"
                                             class="text-green-600 hover:text-green-800 text-sm font-medium"
                                         >
                                             Voir véhicule
                                         </Link>
-                                        <span 
+                                        <span
                                             v-if="rental.vehicle.owner.phone"
                                             class="text-purple-600 hover:text-purple-800 text-sm font-medium cursor-pointer"
                                             @click="window.open(`tel:${rental.vehicle.owner.phone}`)"
@@ -248,7 +248,7 @@ const stats = {
                     <p class="text-gray-600 mb-6">
                         Vous n'avez pas encore fait de réservation. Parcourez les véhicules disponibles pour commencer.
                     </p>
-                    <Link 
+                    <Link
                         :href="route('vehicles.index')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >
