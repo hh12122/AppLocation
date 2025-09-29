@@ -1,5 +1,8 @@
 <template>
-  <AppLayout title="Bienvenue sur CarLocation">
+  <component
+    :is="$page.props.auth.user ? AppLayout : GuestLayout"
+    :title="$page.props.auth.user ? 'Bienvenue sur CarLocation' : undefined"
+  >
     <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <!-- Hero Section -->
       <div class="relative overflow-hidden">
@@ -381,11 +384,12 @@
         </div>
       </div>
     </div>
-  </AppLayout>
+  </component>
 </template>
 
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
+import GuestLayout from '@/layouts/GuestLayout.vue'
 import { Link } from '@inertiajs/vue3'
 import { Car, Home, Check, ArrowRight, Shield, MapPin, Users, Bike, Wrench, Ship } from 'lucide-vue-next'
 </script>

@@ -21,7 +21,7 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
 - **Favorites/Wishlist System**: Save vehicles with personal notes and wishlist management
 - **Rental System**: Complete booking workflow from search to payment
 - **Payment Integration**: Dual payment gateway support with Stripe and PayPal, fee calculation, and refund management
-- **User Roles**: Dual-role system (renters and owners) with admin capabilities
+- **User Roles**: Role-based registration system (Propriétaire/Locataire) with dual capabilities and admin features
 - **Review System**: Complete mutual rating system with detailed criteria
 - **License Verification**: Mandatory driver's license validation before rentals
 - **Dashboard**: Statistics and management for both user types
@@ -106,7 +106,9 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
 - **Layouts**: Page layouts in `resources/js/layouts/`
 
 ### Key Features
-- **Authentication**: Full auth system with registration, login, password reset
+- **Authentication**: Full auth system with role-based registration (Propriétaire/Locataire), login, password reset
+- **User Roles**: Choose primary role during registration with flexible dual-role capabilities
+- **Guest Experience**: Clean landing page with sign-in/sign-up for unauthenticated users
 - **User Settings**: Profile management, password updates, appearance themes, driver license validation
 - **Vehicle Management**: CRUD operations for vehicles with image upload, advanced fields, and location picking
 - **Advanced Search**: Comprehensive filtering system with multiple criteria (vehicle type, engine specs, features, etc.)
@@ -190,6 +192,7 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
 - `driving_license_verified_at`: Verification timestamp
 - `driving_license_rejection_reason`: Admin feedback for rejections
 - `is_admin`: Boolean for admin privileges
+- `user_role`: Primary role selection (locataire, proprietaire, both)
 - `locale`: User's preferred language
 - `timezone`: User's timezone preference
 
@@ -411,3 +414,16 @@ This is a Laravel + Vue.js multi-service rental platform called "AppLocation" bu
    - Composables: useGeoNotifications for complete location and notification management
    - Admin dashboard with statistics, bulk actions, and testing tools
    - Automatic cleanup of expired notifications and old location data
+
+18. **Role-Based Registration System (Added 2025-09-29)**
+   - User role selection during registration (Propriétaire/Locataire)
+   - GuestLayout for unauthenticated users with clean landing page
+   - AppLayout with full sidebar navigation for authenticated users
+   - Dynamic layout switching based on authentication status
+   - Role-specific onboarding experience
+   - Flexible dual-role system maintaining backward compatibility
+   - Enhanced registration form with descriptive role options
+   - Automatic `is_owner` flag setting based on selected role
+   - Contextual information on login page about user roles
+   - Database migration for `user_role` enum field
+   - Updated User model and RegisteredUserController

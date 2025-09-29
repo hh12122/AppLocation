@@ -47,6 +47,7 @@ Une plateforme web complète de location entre particuliers (véhicules, propri�
 - **Chat en temps réel** : Messagerie instantanée entre utilisateurs avec notifications push navigateur
 - **Export PDF** : Génération automatique de contrats de location professionnels
 - **Notifications géolocalisées** : Système complet de notifications basées sur la localisation avec préférences utilisateur
+- **Système d'inscription par rôle** : Choix du rôle principal (Propriétaire/Locataire) avec interface adaptée et onboarding personnalisé
 - **Intelligence artificielle** : Recommandations personnalisées, prédictions de tendances, suggestions de recherche
 - **Support multilingue** : Interface disponible en français, anglais, espagnol et arabe (avec support RTL)
 - **Système de parrainage** : Codes de référence, récompenses et tableau de classement
@@ -159,8 +160,10 @@ Après avoir exécuté le seeder, vous pouvez utiliser ces comptes :
 ### Pour Tous les Utilisateurs
 
 1. **Profil et authentification**
-   - ✅ Inscription avec validation email
-   - ✅ Gestion du profil personnel
+   - ✅ Inscription avec sélection du rôle (Propriétaire/Locataire)
+   - ✅ Page d'accueil adaptée selon l'authentification (landing page pour invités, navigation complète pour utilisateurs connectés)
+   - ✅ Système de rôles flexible avec capacités duales
+   - ✅ Validation email et gestion du profil personnel
    - ✅ Ajout et validation du permis de conduire
    - ✅ Mode clair/sombre
    - ✅ Notifications de statut du permis
@@ -247,6 +250,17 @@ Après avoir exécuté le seeder, vous pouvez utiliser ces comptes :
    - ✅ Intégration avec Laravel Echo et Pusher
    - ✅ Composable useNotifications pour la gestion des notifications
    - ✅ Notifications push géolocalisées avec système complet de localisation
+
+12. **Système d'inscription par rôle (Ajouté 2025-09-29)**
+   - ✅ Sélection du rôle principal lors de l'inscription (Propriétaire/Locataire)
+   - ✅ Interface d'accueil adaptée : landing page pour les invités, navigation complète pour les utilisateurs connectés
+   - ✅ Système de layouts dynamiques (GuestLayout/AppLayout) selon l'authentification
+   - ✅ Expérience d'onboarding spécifique au rôle choisi
+   - ✅ Système de rôles flexible permettant les capacités duales
+   - ✅ Formulaire d'inscription amélioré avec descriptions détaillées des rôles
+   - ✅ Configuration automatique du flag `is_owner` selon le rôle sélectionné
+   - ✅ Informations contextuelles sur la page de connexion
+   - ✅ Migration de base de données pour le champ `user_role`
 
 ## 🔧 Améliorations Possibles
 

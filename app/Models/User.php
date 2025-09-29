@@ -46,6 +46,7 @@ class User extends Authenticatable
         'referral_credits',
         'referral_count',
         'referral_code_generated_at',
+        'user_role',
     ];
 
     /**

@@ -88,6 +88,10 @@ const submit = () => {
                 Don't have an account?
                 <TextLink :href="route('register')" :tabindex="5">Sign up</TextLink>
             </div>
+
+            <div class="text-center text-xs text-muted-foreground mt-2">
+                <p>Rejoignez AppLocation en tant que <strong>Propriétaire</strong> pour louer vos biens ou <strong>Locataire</strong> pour découvrir des locations près de chez vous.</p>
+            </div>
         </form>
     </AuthBase>
 </template>
