@@ -52,8 +52,8 @@ const props = defineProps<Props>();
 
 // Search and filter state
 const searchQuery = ref(props.searchParams.search || '');
-const selectedCategory = ref(props.searchParams.category || '');
-const selectedCity = ref(props.searchParams.city || '');
+const selectedCategory = ref(props.searchParams.category || 'all');
+const selectedCity = ref(props.searchParams.city || 'all');
 const minPrice = ref(props.searchParams.min_price || '');
 const maxPrice = ref(props.searchParams.max_price || '');
 const rentalUnit = ref(props.searchParams.rental_unit || 'day');
@@ -63,16 +63,16 @@ const instantBooking = ref(props.searchParams.instant_booking || false);
 // Apply filters
 const applyFilters = () => {
   const params: Record<string, any> = {};
-  
+
   if (searchQuery.value) params.search = searchQuery.value;
-  if (selectedCategory.value) params.category = selectedCategory.value;
-  if (selectedCity.value) params.city = selectedCity.value;
+  if (selectedCategory.value && selectedCategory.value !== 'all') params.category = selectedCategory.value;
+  if (selectedCity.value && selectedCity.value !== 'all') params.city = selectedCity.value;
   if (minPrice.value) params.min_price = minPrice.value;
   if (maxPrice.value) params.max_price = maxPrice.value;
   if (rentalUnit.value !== 'day') params.rental_unit = rentalUnit.value;
   if (deliveryOnly.value) params.delivery_available = true;
   if (instantBooking.value) params.instant_booking = true;
-  
+
   router.get(route('equipment.index'), params, {
     preserveState: true,
     preserveScroll: true,
@@ -82,14 +82,14 @@ const applyFilters = () => {
 // Clear filters
 const clearFilters = () => {
   searchQuery.value = '';
-  selectedCategory.value = '';
-  selectedCity.value = '';
+  selectedCategory.value = 'all';
+  selectedCity.value = 'all';
   minPrice.value = '';
   maxPrice.value = '';
   rentalUnit.value = 'day';
   deliveryOnly.value = false;
   instantBooking.value = false;
-  
+
   router.get(route('equipment.index'));
 };
 
@@ -138,7 +138,7 @@ const getCategoryLabel = (category: string) => {
 
 // Get equipment image
 const getEquipmentImage = (equipment: Equipment) => {
-  return equipment.primary_image?.image_path 
+  return equipment.primary_image?.image_path
     ? `/storage/${equipment.primary_image.image_path}`
     : '/images/equipment-placeholder.jpg';
 };
@@ -146,7 +146,7 @@ const getEquipmentImage = (equipment: Equipment) => {
 
 <template>
   <Head title="Matériel à louer" />
-  
+
   <AppLayout>
     <div class="max-w-7xl mx-auto px-4 py-8">
       <!-- Header -->
@@ -159,7 +159,7 @@ const getEquipmentImage = (equipment: Equipment) => {
             Trouvez le matériel parfait pour vos besoins
           </p>
         </div>
-        
+
         <Link :href="route('equipment.create')">
           <Button>
             <Plus class="w-4 h-4 mr-2" />
@@ -180,14 +180,14 @@ const getEquipmentImage = (equipment: Equipment) => {
                 class="w-full"
               />
             </div>
-            
+
             <!-- Category -->
             <Select v-model="selectedCategory">
               <SelectTrigger class="w-48">
                 <SelectValue placeholder="Toutes catégories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Toutes catégories</SelectItem>
+                <SelectItem value="all">Toutes catégories</SelectItem>
                 <SelectItem
                   v-for="(category, key) in categories"
                   :key="key"
@@ -197,14 +197,14 @@ const getEquipmentImage = (equipment: Equipment) => {
                 </SelectItem>
               </SelectContent>
             </Select>
-            
+
             <!-- City -->
             <Select v-model="selectedCity">
               <SelectTrigger class="w-48">
                 <SelectValue placeholder="Toutes villes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Toutes villes</SelectItem>
+                <SelectItem value="all">Toutes villes</SelectItem>
                 <SelectItem
                   v-for="city in filters.cities"
                   :key="city"
@@ -214,7 +214,7 @@ const getEquipmentImage = (equipment: Equipment) => {
                 </SelectItem>
               </SelectContent>
             </Select>
-            
+
             <!-- Rental Unit -->
             <Select v-model="rentalUnit">
               <SelectTrigger class="w-32">
@@ -231,7 +231,7 @@ const getEquipmentImage = (equipment: Equipment) => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div class="flex flex-wrap gap-4 mt-4">
             <!-- Price Range -->
             <div class="flex gap-2 items-center">
@@ -250,7 +250,7 @@ const getEquipmentImage = (equipment: Equipment) => {
               />
               <span class="text-sm text-gray-500">€{{ getRentalUnitLabel(rentalUnit) }}</span>
             </div>
-            
+
             <!-- Quick Filters -->
             <div class="flex gap-2">
               <Button
@@ -302,7 +302,7 @@ const getEquipmentImage = (equipment: Equipment) => {
               :alt="item.primary_image?.alt_text || item.name"
               class="w-full h-48 object-cover rounded-t-lg"
             />
-            
+
             <!-- Badges -->
             <div class="absolute top-3 left-3 flex gap-2">
               <Badge v-if="item.instant_booking" class="bg-green-500">
@@ -312,39 +312,39 @@ const getEquipmentImage = (equipment: Equipment) => {
                 Livraison
               </Badge>
             </div>
-            
+
             <!-- Price -->
             <div class="absolute top-3 right-3 bg-white/90 px-2 py-1 rounded-lg">
               <span class="font-bold text-lg">{{ getPrice(item) }}€</span>
               <span class="text-sm text-gray-600">{{ getRentalUnitLabel(item.rental_unit) }}</span>
             </div>
           </div>
-          
+
           <CardContent class="p-4">
             <div class="mb-2">
               <Badge variant="secondary" class="text-xs">
                 {{ getCategoryLabel(item.category) }}
               </Badge>
             </div>
-            
+
             <h3 class="font-semibold text-lg mb-2 line-clamp-2">{{ item.name }}</h3>
             <p class="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-2">
               {{ item.description }}
             </p>
-            
+
             <div class="flex items-center justify-between text-sm">
               <div class="flex items-center gap-1 text-gray-500">
                 <MapPin class="w-4 h-4" />
                 {{ item.city }}
               </div>
-              
+
               <div class="flex items-center gap-1">
                 <Star class="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 <span>{{ item.rating?.toFixed(1) || 'N/A' }}</span>
                 <span class="text-gray-500">({{ item.rating_count || 0 }})</span>
               </div>
             </div>
-            
+
             <div class="mt-3 pt-3 border-t">
               <div class="text-sm text-gray-600 dark:text-gray-300">
                 Par {{ item.owner.name }}

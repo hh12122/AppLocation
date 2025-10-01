@@ -24,7 +24,7 @@ class ChatController extends Controller
                 'owner:id,name,avatar',
                 'latestMessage.sender:id,name'
             ])
-            ->withCount(['unreadMessagesFor' => function ($query) use ($user) {
+            ->withCount(['messages as unread_messages_count' => function ($query) use ($user) {
                 $query->where('user_id', '!=', $user->id)->whereNull('read_at');
             }])
             ->active()
@@ -33,7 +33,7 @@ class ChatController extends Controller
             ->map(function ($conversation) use ($user) {
                 $otherParticipant = $conversation->getOtherParticipant($user);
                 $conversation->other_participant = $otherParticipant;
-                $conversation->unread_count = $conversation->getUnreadCountFor($user);
+                $conversation->unread_count = $conversation->unread_messages_count ?? 0;
                 return $conversation;
             });
 
