@@ -7,24 +7,30 @@ use App\Models\Vehicle;
 use App\Models\Equipment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Routing\Controllers\HasMiddleware;
 
-class FavoriteController extends Controller
+class FavoriteController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    public function __construct() {}
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
     {
-        $this->middleware('auth');
+        return [
+            'auth'
+        ];
     }
-
     /**
      * Display the user's wishlist
      */
     public function index(Request $request)
     {
         $query = Favorite::forUser(auth()->id());
-        
+
         // Filter by type if specified
         $type = $request->get('type', 'all'); // all, vehicles, equipment
-        
+
         if ($type === 'vehicles') {
             $query->vehicles()->withVehicleDetails();
         } elseif ($type === 'equipment') {
@@ -32,7 +38,7 @@ class FavoriteController extends Controller
         } else {
             $query->withDetails();
         }
-        
+
         $favorites = $query->orderBy('created_at', 'desc')->paginate(12);
 
         return Inertia::render('Favorites/Index', [
@@ -192,7 +198,7 @@ class FavoriteController extends Controller
                 'favoritable_id' => $itemId,
                 'vehicle_id' => $type === 'vehicle' ? $itemId : null, // Keep for backwards compatibility
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'is_favorited' => true,
@@ -211,7 +217,7 @@ class FavoriteController extends Controller
         }
 
         $type = $request->get('type', 'vehicle'); // Default to vehicle for backwards compatibility
-        
+
         if ($type === 'vehicle') {
             $modelClass = Vehicle::class;
         } else {
@@ -237,12 +243,12 @@ class FavoriteController extends Controller
 
         // Check both new polymorphic and old vehicle_id for compatibility
         $isFavorited = Favorite::where('user_id', auth()->id())
-            ->where(function($query) use ($vehicleId) {
+            ->where(function ($query) use ($vehicleId) {
                 $query->where('vehicle_id', $vehicleId)
-                      ->orWhere(function($subQuery) use ($vehicleId) {
-                          $subQuery->where('favoritable_type', Vehicle::class)
-                                   ->where('favoritable_id', $vehicleId);
-                      });
+                    ->orWhere(function ($subQuery) use ($vehicleId) {
+                        $subQuery->where('favoritable_type', Vehicle::class)
+                            ->where('favoritable_id', $vehicleId);
+                    });
             })
             ->exists();
 

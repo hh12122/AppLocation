@@ -64,7 +64,7 @@ const formatPrice = (price: number) => {
 
 const fuelTypeLabels = {
     gasoline: 'Essence',
-    diesel: 'Diesel', 
+    diesel: 'Diesel',
     electric: 'Électrique',
     hybrid: 'Hybride'
 }
@@ -140,7 +140,7 @@ const removeFavorite = (vehicleId: number) => {
                                     </div>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-2xl font-bold text-gray-900">{{ props.favorites.meta.total }}</p>
+                                    <p class="text-2xl font-bold text-gray-900">{{ props.favorites?.meta?.total }}</p>
                                     <p class="text-sm text-gray-600">Véhicules favoris</p>
                                 </div>
                             </div>
@@ -175,7 +175,7 @@ const removeFavorite = (vehicleId: number) => {
                                 </div>
                                 <div class="ml-4">
                                     <p class="text-2xl font-bold text-gray-900">
-                                        {{ props.favorites.data.length > 0 
+                                        {{ props.favorites.data.length > 0
                                             ? formatPrice(Math.round(props.favorites.data.reduce((sum, f) => sum + f.vehicle.daily_rate, 0) / props.favorites.data.length))
                                             : '0 €'
                                         }}
@@ -189,28 +189,28 @@ const removeFavorite = (vehicleId: number) => {
 
                 <!-- Favorites Grid -->
                 <div v-if="props.favorites.data.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Card 
-                        v-for="favorite in props.favorites.data" 
-                        :key="favorite.id" 
+                    <Card
+                        v-for="favorite in props.favorites.data"
+                        :key="favorite.id"
                         class="group hover:shadow-lg transition-shadow duration-200"
                     >
                         <div class="aspect-video relative overflow-hidden rounded-t-lg">
-                            <img 
-                                :src="getPrimaryImage(favorite.vehicle)" 
+                            <img
+                                :src="getPrimaryImage(favorite.vehicle)"
                                 :alt="`${favorite.vehicle.brand} ${favorite.vehicle.model}`"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                             />
                             <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200"></div>
-                            
+
                             <!-- Price badge -->
                             <Badge class="absolute top-3 right-3 bg-green-500 text-white">
                                 {{ formatPrice(favorite.vehicle.daily_rate) }}/jour
                             </Badge>
-                            
+
                             <!-- Favorite button -->
                             <div class="absolute top-3 left-3">
-                                <FavoriteButton 
-                                    :vehicle-id="favorite.vehicle.id" 
+                                <FavoriteButton
+                                    :vehicle-id="favorite.vehicle.id"
                                     :initial-is-favorited="true"
                                     size="sm"
                                 />
@@ -224,7 +224,7 @@ const removeFavorite = (vehicleId: number) => {
                                 </Badge>
                             </div>
                         </div>
-                        
+
                         <CardContent class="p-4">
                             <!-- Vehicle info -->
                             <div class="mb-3">
@@ -276,7 +276,7 @@ const removeFavorite = (vehicleId: number) => {
                                         <Edit3 class="w-3 h-3" />
                                     </Button>
                                 </div>
-                                
+
                                 <div v-if="editingNotes === favorite.id" class="space-y-2">
                                     <Textarea
                                         v-model="newNotes"
@@ -293,7 +293,7 @@ const removeFavorite = (vehicleId: number) => {
                                         </Button>
                                     </div>
                                 </div>
-                                
+
                                 <p v-else class="text-xs text-gray-600 italic">
                                     {{ favorite.notes || 'Aucune note ajoutée' }}
                                 </p>
@@ -301,8 +301,8 @@ const removeFavorite = (vehicleId: number) => {
 
                             <!-- Actions -->
                             <div class="flex gap-2">
-                                <Link 
-                                    :href="route('vehicles.show', favorite.vehicle.id)" 
+                                <Link
+                                    :href="route('vehicles.show', favorite.vehicle.id)"
                                     class="flex-1"
                                 >
                                     <Button class="w-full" size="sm">

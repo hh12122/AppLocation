@@ -11,16 +11,23 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Routing\Controllers\HasMiddleware;
 
-class GeoNotificationController extends Controller
+class GeoNotificationController extends Controller implements HasMiddleware
 {
     public function __construct(
         private readonly GeoNotificationService $geoNotificationService
     ) {
-        $this->middleware('auth');
-        $this->middleware('admin');
     }
-
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            'auth','admin'
+        ];
+    }
     /**
      * Display the geo-notifications dashboard
      */
@@ -42,8 +49,8 @@ class GeoNotificationController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('message', 'like', "%{$search}%")
-                  ->orWhere('location_name', 'like', "%{$search}%");
+                    ->orWhere('message', 'like', "%{$search}%")
+                    ->orWhere('location_name', 'like', "%{$search}%");
             });
         }
 
