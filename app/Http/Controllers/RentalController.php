@@ -8,6 +8,7 @@ use App\Services\RentalContractService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 class RentalController extends Controller
 {
@@ -40,7 +41,7 @@ class RentalController extends Controller
     public function create(Request $request, Vehicle $vehicle)
     {
         $user = auth()->user();
-        
+
         if (!$user->canRent()) {
             if (!$user->driving_license_number || !$user->driving_license_expiry) {
                 return redirect()->route('license.verification')
@@ -55,7 +56,7 @@ class RentalController extends Controller
                     ->with('error', 'Votre permis de conduire a été rejeté. Veuillez soumettre des documents valides.');
             }
         }
-        
+
         abort_if($vehicle->owner_id === auth()->id(), 403, 'Vous ne pouvez pas louer votre propre véhicule.');
         abort_if(!$vehicle->is_available || $vehicle->status !== 'active', 403, 'Ce véhicule n\'est pas disponible.');
 
@@ -111,7 +112,7 @@ class RentalController extends Controller
 
     public function show(Rental $rental)
     {
-        $this->authorize('view', $rental);
+        Gate::authorizee('view', $rental);
 
         $rental->load(['vehicle.images', 'vehicle.owner', 'renter', 'reviews']);
 
@@ -123,7 +124,7 @@ class RentalController extends Controller
 
     public function confirm(Rental $rental)
     {
-        $this->authorize('confirm', $rental);
+        Gate::authorizee('confirm', $rental);
 
         if ($rental->status !== 'pending') {
             return back()->withErrors(['status' => 'Cette réservation ne peut plus être confirmée.']);
@@ -136,7 +137,7 @@ class RentalController extends Controller
 
     public function cancel(Rental $rental)
     {
-        $this->authorize('cancel', $rental);
+        Gate::authorizee('cancel', $rental);
 
         if (!in_array($rental->status, ['pending', 'confirmed'])) {
             return back()->withErrors(['status' => 'Cette réservation ne peut plus être annulée.']);
@@ -149,7 +150,7 @@ class RentalController extends Controller
 
     public function pickup(Request $request, Rental $rental)
     {
-        $this->authorize('pickup', $rental);
+        Gate::authorizee('pickup', $rental);
 
         $validated = $request->validate([
             'pickup_mileage' => 'required|integer|min:0',
@@ -179,7 +180,7 @@ class RentalController extends Controller
 
     public function return(Request $request, Rental $rental)
     {
-        $this->authorize('return', $rental);
+        Gate::authorizee('return', $rental);
 
         $validated = $request->validate([
             'return_mileage' => 'required|integer|min:' . $rental->pickup_mileage,
@@ -237,19 +238,19 @@ class RentalController extends Controller
             'rentals' => $rentals
         ]);
     }
-    
+
     public function exportContract(Rental $rental, RentalContractService $contractService)
     {
-        $this->authorize('view', $rental);
-        
+        Gate::authorizee('view', $rental);
+
         // Only allow export for confirmed, active or completed rentals
         if (!in_array($rental->status, ['confirmed', 'active', 'completed'])) {
             abort(403, 'Le contrat ne peut être exporté que pour les locations confirmées, actives ou complétées.');
         }
-        
+
         $pdf = $contractService->generateContract($rental);
         $filename = $contractService->getContractFilename($rental);
-        
+
         return $pdf->download($filename);
     }
 }

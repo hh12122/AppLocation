@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class ReviewController extends Controller
@@ -16,7 +17,7 @@ class ReviewController extends Controller
     {
         $reviews = Review::with(['reviewer', 'reviewee', 'rental.vehicle'])
             ->when($request->type, fn($q, $type) => $q->where('type', $type))
-            ->when($request->user_id, fn($q, $userId) => 
+            ->when($request->user_id, fn($q, $userId) =>
                 $q->where('reviewer_id', $userId)->orWhere('reviewee_id', $userId)
             )
             ->where('is_public', true)
@@ -31,19 +32,19 @@ class ReviewController extends Controller
 
     public function create(Rental $rental)
     {
-        $this->authorize('review', $rental);
-        
+        Gate::authorizee('review', $rental);
+
         $existingReview = Review::where('rental_id', $rental->id)
             ->where('reviewer_id', auth()->id())
             ->first();
-            
+
         if ($existingReview) {
             return redirect()->route('rentals.show', $rental)
                 ->with('error', 'Vous avez déjà laissé une évaluation pour cette location.');
         }
 
         $rental->load(['vehicle.owner', 'renter']);
-        
+
         $reviewType = auth()->id() === $rental->renter_id ? 'vehicle' : 'renter';
         $reviewee = auth()->id() === $rental->renter_id ? $rental->vehicle->owner : $rental->renter;
 
@@ -56,12 +57,12 @@ class ReviewController extends Controller
 
     public function store(Request $request, Rental $rental)
     {
-        $this->authorize('review', $rental);
-        
+        Gate::authorizee('review', $rental);
+
         $existingReview = Review::where('rental_id', $rental->id)
             ->where('reviewer_id', auth()->id())
             ->first();
-            
+
         if ($existingReview) {
             return redirect()->route('rentals.show', $rental)
                 ->with('error', 'Vous avez déjà laissé une évaluation pour cette location.');
@@ -79,7 +80,7 @@ class ReviewController extends Controller
         ]);
 
         $rental->load(['vehicle.owner', 'renter']);
-        
+
         if (auth()->id() === $rental->renter_id) {
             $reviewType = 'vehicle';
             $revieweeId = $rental->vehicle->owner_id;
@@ -116,7 +117,7 @@ class ReviewController extends Controller
             $otherReview = Review::where('rental_id', $rental->id)
                 ->where('reviewer_id', '!=', auth()->id())
                 ->exists();
-                
+
             if ($otherReview) {
                 $rental->status = 'completed';
                 $rental->save();
@@ -130,7 +131,7 @@ class ReviewController extends Controller
     public function show(Review $review)
     {
         $review->load(['reviewer', 'reviewee', 'rental.vehicle']);
-        
+
         return Inertia::render('Reviews/Show', [
             'review' => $review
         ]);
@@ -138,10 +139,10 @@ class ReviewController extends Controller
 
     public function edit(Review $review)
     {
-        $this->authorize('update', $review);
-        
+        Gate::authorizee('update', $review);
+
         $review->load(['rental.vehicle.owner', 'rental.renter']);
-        
+
         return Inertia::render('Reviews/Edit', [
             'review' => $review
         ]);
@@ -149,8 +150,8 @@ class ReviewController extends Controller
 
     public function update(Request $request, Review $review)
     {
-        $this->authorize('update', $review);
-        
+        Gate::authorizee('update', $review);
+
         $validated = $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'required|string|min:10|max:1000',
@@ -185,12 +186,12 @@ class ReviewController extends Controller
 
     public function destroy(Review $review)
     {
-        $this->authorize('delete', $review);
-        
+        Gate::authorizee('delete', $review);
+
         DB::transaction(function () use ($review) {
             $revieweeId = $review->reviewee_id;
             $vehicleId = $review->rental->vehicle_id;
-            
+
             $review->delete();
 
             if ($review->type === 'vehicle') {
@@ -222,7 +223,7 @@ class ReviewController extends Controller
             ->where('is_public', true)
             ->latest()
             ->paginate(10);
-            
+
         return Inertia::render('Reviews/VehicleReviews', [
             'vehicle' => $vehicle->load('owner'),
             'reviews' => $reviews
@@ -236,7 +237,7 @@ class ReviewController extends Controller
             ->where('is_public', true)
             ->latest()
             ->paginate(10);
-            
+
         return Inertia::render('Reviews/UserReviews', [
             'user' => $user,
             'reviews' => $reviews

@@ -7,6 +7,7 @@ use App\Models\ReferralReward;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class ReferralController extends Controller
@@ -130,7 +131,7 @@ class ReferralController extends Controller
 
         // Find the referrer
         $referrer = User::where('referral_code', $referralCode)->first();
-        
+
         if (!$referrer) {
             return response()->json(['error' => 'Code de parrainage invalide'], 400);
         }
@@ -232,7 +233,7 @@ class ReferralController extends Controller
 
         if ($referral) {
             $referral->markAsCompleted($conversionType);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Conversion de parrainage enregistrée',
@@ -260,7 +261,7 @@ class ReferralController extends Controller
     // Admin methods
     public function adminIndex()
     {
-        $this->authorize('viewAny', Referral::class);
+        Gate::authorizee('viewAny', Referral::class);
 
         $referrals = Referral::with(['referrer:id,name,email', 'referredUser:id,name,email'])
             ->latest()
@@ -281,7 +282,7 @@ class ReferralController extends Controller
 
     public function adminStats()
     {
-        $this->authorize('viewAny', Referral::class);
+        Gate::authorizee('viewAny', Referral::class);
 
         $stats = [
             'referrals_by_month' => Referral::selectRaw('MONTH(created_at) as month, YEAR(created_at) as year, COUNT(*) as count')

@@ -83,8 +83,8 @@ class EquipmentController extends Controller
      */
     public function create(Request $request)
     {
-        if (!Auth::user()->canListEquipment()) {
-            return redirect()->route('equipment.index')
+        if (!Auth::user()?->canListEquipment()) {
+            return to_route('equipment.index')
                 ->with('error', 'Vous devez avoir un profil vérifié pour lister du matériel.');
         }
 
@@ -101,7 +101,7 @@ class EquipmentController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Auth::user()->canListEquipment()) {
+        if (!Auth::user()?->canListEquipment()) {
             abort(403, 'Unauthorized to create equipment');
         }
 
@@ -167,7 +167,7 @@ class EquipmentController extends Controller
         // Store category-specific attributes in the correct JSON field
         $categoryAttributes = $validated['category_attributes'] ?? [];
         unset($validated['category_attributes']);
-        
+
         $validated[$validated['category'] . '_attributes'] = $categoryAttributes;
 
         $equipment = Equipment::create($validated);
@@ -208,7 +208,7 @@ class EquipmentController extends Controller
             'equipment' => $equipment,
             'categoryConfig' => Equipment::getCategoryConfig()[$equipment->category],
             'similarEquipment' => $similarEquipment,
-            'isFavorite' => Auth::check() ? 
+            'isFavorite' => Auth::check() ?
                 \App\Models\Favorite::where('user_id', Auth::id())
                     ->where('favoritable_type', Equipment::class)
                     ->where('favoritable_id', $equipment->id)
@@ -353,8 +353,9 @@ class EquipmentController extends Controller
      */
     public function myEquipment(Request $request)
     {
-        $equipment = Auth::user()
-            ->equipment()
+        $user = Auth::user();
+
+        $equipment = $user->equipment()
             ->with(['primaryImage'])
             ->when($request->search, function ($query) use ($request) {
                 $query->where('name', 'like', "%{$request->search}%")
@@ -374,10 +375,10 @@ class EquipmentController extends Controller
             'equipment' => $equipment,
             'categories' => Equipment::getCategoryConfig(),
             'stats' => [
-                'total' => Auth::user()->equipment()->count(),
-                'active' => Auth::user()->equipment()->active()->count(),
-                'bookings' => Auth::user()->getTotalEquipmentBookings(),
-                'earnings' => Auth::user()->getEquipmentEarnings(),
+                'total' => $user->equipment()->count(),
+                'active' => $user->equipment()->active()->count(),
+                'bookings' => $user->getTotalEquipmentBookings(),
+                'earnings' => $user->getEquipmentEarnings(),
             ],
         ]);
     }
@@ -442,7 +443,7 @@ class EquipmentController extends Controller
         if ($request->start_date && $request->end_date) {
             $startDate = Carbon::parse($request->start_date);
             $endDate = Carbon::parse($request->end_date);
-            
+
             $query->whereDoesntHave('bookings', function ($q) use ($startDate, $endDate) {
                 $q->whereIn('status', ['confirmed', 'preparing', 'ready', 'delivered', 'in_use'])
                   ->where('start_datetime', '<', $endDate)
@@ -508,7 +509,7 @@ class EquipmentController extends Controller
 
         foreach ($images as $image) {
             $path = $image->store('equipment/' . $equipment->id, 'public');
-            
+
             EquipmentImage::create([
                 'equipment_id' => $equipment->id,
                 'image_path' => $path,

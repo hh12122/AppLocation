@@ -252,7 +252,7 @@ const removeFavorite = (vehicleId: number) => {
                                     {{ favorite.vehicle.seats }} places
                                 </div>
                                 <div class="flex items-center">
-                                    ⭐ {{ favorite.vehicle.reviews_avg_rating ? favorite.vehicle.reviews_avg_rating.toFixed(1) : 'N/A' }}
+                                    ⭐ {{ Number(favorite.vehicle.reviews_avg_rating || 0).toFixed(1) }}
                                     <span class="ml-1">({{ favorite.vehicle.reviews_count }})</span>
                                 </div>
                             </div>

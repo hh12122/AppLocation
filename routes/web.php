@@ -20,12 +20,20 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // Vehicles routes
-Route::resource('vehicles', VehicleController::class);
+Route::resource('vehicles', VehicleController::class)
+    ->only(['create', 'store', 'edit', 'update', 'destroy'])
+    ->middleware('auth');
+Route::resource('vehicles', VehicleController::class)
+    ->except(['create', 'store', 'edit', 'update', 'destroy']);
 Route::get('my-vehicles', [VehicleController::class, 'myVehicles'])
     ->middleware(['auth'])->name('vehicles.my');
 
 // Properties routes
-Route::resource('properties', App\Http\Controllers\PropertyController::class);
+Route::resource('properties', App\Http\Controllers\PropertyController::class)
+    ->only(['create', 'store', 'edit', 'update', 'destroy'])
+    ->middleware('auth');
+Route::resource('properties', App\Http\Controllers\PropertyController::class)
+    ->except(['create', 'store', 'edit', 'update', 'destroy']);
 Route::get('my-properties', [App\Http\Controllers\PropertyController::class, 'myProperties'])
     ->middleware(['auth'])->name('properties.my');
 
@@ -52,7 +60,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Equipment routes
-Route::resource('equipment', App\Http\Controllers\EquipmentController::class);
+Route::resource('equipment', App\Http\Controllers\EquipmentController::class)
+    ->only(['create', 'store', 'edit', 'update', 'destroy'])
+    ->middleware('auth');
+Route::resource('equipment', App\Http\Controllers\EquipmentController::class)
+    ->except(['create', 'store', 'edit', 'update', 'destroy']);
 Route::get('equipment/category/{category}', [App\Http\Controllers\EquipmentController::class, 'category'])
     ->name('equipment.category');
 Route::get('my-equipment', [App\Http\Controllers\EquipmentController::class, 'myEquipment'])

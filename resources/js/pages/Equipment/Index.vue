@@ -340,7 +340,7 @@ const getEquipmentImage = (equipment: Equipment) => {
 
               <div class="flex items-center gap-1">
                 <Star class="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span>{{ item.rating?.toFixed(1) || 'N/A' }}</span>
+                <span>{{ Number(item.rating || 0).toFixed(1) }}</span>
                 <span class="text-gray-500">({{ item.rating_count || 0 }})</span>
               </div>
             </div>

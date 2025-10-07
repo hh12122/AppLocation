@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -80,7 +81,7 @@ class LicenseVerificationController extends Controller
 
     public function verify(Request $request, User $user)
     {
-        $this->authorize('admin');
+        Gate::authorizee('admin');
 
         $request->validate([
             'status' => 'required|in:verified,rejected',

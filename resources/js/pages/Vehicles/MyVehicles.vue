@@ -119,7 +119,7 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                     <Card>
                         <CardContent class="p-6">
                             <div class="text-2xl font-bold text-purple-600">
-                                {{ (props.vehicles.data.reduce((sum, v) => sum + (v.rating || 0), 0) / props.vehicles.data.length || 0).toFixed(1) }}
+                                {{ Number((props.vehicles.data.reduce((sum, v) => sum + (Number(v.rating) || 0), 0) / props.vehicles.data.length) || 0).toFixed(1) }}
                             </div>
                             <p class="text-sm text-gray-600">Note moyenne</p>
                         </CardContent>

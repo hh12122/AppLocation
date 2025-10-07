@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
@@ -120,7 +121,7 @@ class VehicleController extends Controller
         // Sorting
         $sortBy = $request->input('sort_by', 'created_at');
         $sortOrder = $request->input('sort_order', 'desc');
-        
+
         switch ($sortBy) {
             case 'price_low':
                 $query->orderBy('daily_rate', 'asc');
@@ -210,7 +211,7 @@ class VehicleController extends Controller
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $path = $image->store('vehicles', 'public');
-                
+
                 $vehicle->images()->create([
                     'image_path' => $path,
                     'is_primary' => $index === 0,
@@ -229,14 +230,14 @@ class VehicleController extends Controller
     public function show(Vehicle $vehicle)
     {
         $vehicle->load(['owner', 'images', 'reviews.reviewer']);
-        
+
         // Get vehicle bookings for the calendar
         $bookings = $vehicle->rentals()
             ->whereIn('status', ['confirmed', 'active'])
             ->where('end_date', '>=', now())
             ->select('start_date', 'end_date', 'status')
             ->get();
-        
+
         // Check if vehicle is favorited by current user
         $isFavorited = false;
         if (auth()->check()) {
@@ -253,10 +254,10 @@ class VehicleController extends Controller
 
     public function edit(Vehicle $vehicle)
     {
-        $this->authorize('update', $vehicle);
-        
+        Gate::authorize('update', $vehicle);
+
         $vehicle->load('images');
-        
+
         return Inertia::render('Vehicles/Edit', [
             'vehicle' => $vehicle
         ]);
@@ -264,8 +265,8 @@ class VehicleController extends Controller
 
     public function update(Request $request, Vehicle $vehicle)
     {
-        $this->authorize('update', $vehicle);
-        
+        Gate::authorize('update', $vehicle);
+
         $validated = $request->validate([
             'brand' => 'required|string|max:255',
             'model' => 'required|string|max:255',
@@ -301,12 +302,12 @@ class VehicleController extends Controller
     public function destroy(Vehicle $vehicle)
     {
         $this->authorize('delete', $vehicle);
-        
+
         // Delete associated images from storage
         foreach ($vehicle->images as $image) {
             Storage::disk('public')->delete($image->image_path);
         }
-        
+
         $vehicle->delete();
 
         // Clear cache when vehicle is deleted

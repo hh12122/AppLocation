@@ -175,7 +175,7 @@ const propertyTypeLabels: Record<string, string> = {
                                                 </p>
                                                 <p class="text-sm text-gray-600">
                                                     <strong>Réservations:</strong> {{ property.bookings_count || 0 }}
-                                                    <strong class="ml-4">Note:</strong> ⭐ {{ property.rating?.toFixed(1) || 'N/A' }}
+                                                    <strong class="ml-4">Note:</strong> ⭐ {{ Number(property.rating || 0).toFixed(1) }}
                                                 </p>
                                             </div>
                                         </div>

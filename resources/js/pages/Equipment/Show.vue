@@ -8,17 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Calendar, 
-  Euro, 
-  MapPin, 
-  Star, 
-  User, 
-  Clock, 
-  Package, 
-  Truck, 
-  Shield, 
-  Check, 
+import {
+  Calendar,
+  Euro,
+  MapPin,
+  Star,
+  User,
+  Clock,
+  Package,
+  Truck,
+  Shield,
+  Check,
   Info,
   Heart,
   Share2,
@@ -174,14 +174,14 @@ const getConditionColor = (condition: string) => {
 
 // Image navigation
 const previousImage = () => {
-  currentImageIndex.value = currentImageIndex.value === 0 
-    ? equipmentImages.value.length - 1 
+  currentImageIndex.value = currentImageIndex.value === 0
+    ? equipmentImages.value.length - 1
     : currentImageIndex.value - 1;
 };
 
 const nextImage = () => {
-  currentImageIndex.value = currentImageIndex.value === equipmentImages.value.length - 1 
-    ? 0 
+  currentImageIndex.value = currentImageIndex.value === equipmentImages.value.length - 1
+    ? 0
     : currentImageIndex.value + 1;
 };
 
@@ -191,7 +191,7 @@ const goToImage = (index: number) => {
 
 // Similar equipment image
 const getSimilarEquipmentImage = (equipment: Equipment) => {
-  return equipment.primary_image?.image_path 
+  return equipment.primary_image?.image_path
     ? `/storage/${equipment.primary_image.image_path}`
     : '/images/equipment-placeholder.jpg';
 };
@@ -199,7 +199,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
 
 <template>
   <Head :title="equipment.name" />
-  
+
   <AppLayout>
     <div class="max-w-7xl mx-auto px-4 py-8">
       <!-- Back Button -->
@@ -225,7 +225,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                 class="w-full h-full object-cover cursor-pointer"
                 @click="showImageModal = true"
               />
-              
+
               <!-- Image Navigation -->
               <div v-if="equipmentImages.length > 1" class="absolute inset-0 flex items-center justify-between p-4">
                 <Button
@@ -245,12 +245,12 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                   <ChevronRight class="w-4 h-4" />
                 </Button>
               </div>
-              
+
               <!-- Image Counter -->
               <div class="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-sm">
                 {{ currentImageIndex + 1 }} / {{ equipmentImages.length }}
               </div>
-              
+
               <!-- View Full Size -->
               <div class="absolute top-4 right-4">
                 <Button
@@ -263,7 +263,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                 </Button>
               </div>
             </div>
-            
+
             <!-- Thumbnails -->
             <div v-if="equipmentImages.length > 1" class="flex gap-2 overflow-x-auto">
               <button
@@ -300,11 +300,11 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                 </Button>
               </div>
             </div>
-            
+
             <div class="flex items-center gap-4 text-sm text-gray-600 mb-4">
               <div class="flex items-center gap-1">
                 <Star class="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span>{{ equipment.rating?.toFixed(1) || 'N/A' }}</span>
+                <span>{{ Number(equipment.rating || 0).toFixed(1) }}</span>
                 <span>({{ equipment.rating_count || 0 }} avis)</span>
               </div>
               <div class="flex items-center gap-1">
@@ -312,7 +312,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                 {{ equipment.city }}
               </div>
             </div>
-            
+
             <div class="flex flex-wrap gap-2 mb-4">
               <Badge>{{ categoryConfig.subcategories[equipment.subcategory] || equipment.subcategory }}</Badge>
               <Badge :class="getConditionColor(equipment.condition)">
@@ -337,14 +337,14 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                 <span>{{ price.unit }}</span>
                 <span class="font-semibold">{{ price.rate }}€{{ price.period }}</span>
               </div>
-              
+
               <Separator />
-              
+
               <div v-if="equipment.security_deposit" class="flex justify-between text-sm">
                 <span>Caution</span>
                 <span>{{ equipment.security_deposit }}€</span>
               </div>
-              
+
               <div v-if="equipment.delivery_available && equipment.delivery_fee" class="flex justify-between text-sm">
                 <span>Frais de livraison</span>
                 <span>{{ equipment.delivery_fee }}€</span>
@@ -364,7 +364,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                   <p class="font-medium">{{ equipment.owner.name }}</p>
                   <div class="flex items-center gap-1 text-sm text-gray-600">
                     <Star class="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    <span>{{ equipment.owner.rating?.toFixed(1) || 'N/A' }}</span>
+                    <span>{{ Number(equipment.owner.rating || 0).toFixed(1) }}</span>
                     <span>({{ equipment.owner.rating_count || 0 }} avis)</span>
                   </div>
                 </div>
@@ -600,7 +600,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
               <p class="text-sm text-gray-600 mb-2">{{ similar.city }}</p>
               <div class="flex items-center gap-1 text-xs">
                 <Star class="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                <span>{{ similar.rating?.toFixed(1) || 'N/A' }}</span>
+                <span>{{ Number(similar.rating || 0).toFixed(1) }}</span>
               </div>
             </CardContent>
           </Card>
@@ -617,7 +617,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
             :alt="equipmentImages[currentImageIndex].alt_text"
             class="w-full h-auto max-h-[80vh] object-contain"
           />
-          
+
           <!-- Navigation in Modal -->
           <div v-if="equipmentImages.length > 1" class="absolute inset-0 flex items-center justify-between p-4">
             <Button
@@ -637,7 +637,7 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
               <ChevronRight class="w-4 h-4" />
             </Button>
           </div>
-          
+
           <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded">
             {{ currentImageIndex + 1 }} / {{ equipmentImages.length }}
           </div>

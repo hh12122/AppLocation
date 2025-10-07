@@ -37,7 +37,7 @@ class VehiclePolicy
      */
     public function update(User $user, Vehicle $vehicle): bool
     {
-        return false;
+        return $user->id === $vehicle->owner_id;
     }
 
     /**

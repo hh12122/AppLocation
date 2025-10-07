@@ -156,7 +156,7 @@ const getPrice = (equipment: Equipment) => {
                     <Card>
                         <CardContent class="p-6">
                             <div class="text-2xl font-bold text-purple-600">
-                                {{ (props.equipment.data.reduce((sum, e) => sum + (e.rating || 0), 0) / props.equipment.data.length || 0).toFixed(1) }}
+                                {{ Number(props.equipment.data.reduce((sum, e) => sum + (e.rating || 0), 0) / props.equipment.data.length || 0).toFixed(1) }}
                             </div>
                             <p class="text-sm text-gray-600">Note moyenne</p>
                         </CardContent>
@@ -204,7 +204,7 @@ const getPrice = (equipment: Equipment) => {
                                                 </p>
                                                 <p class="text-sm text-gray-600">
                                                     <strong>Locations:</strong> {{ item.bookings_count || 0 }}
-                                                    <strong class="ml-4">Note:</strong> ⭐ {{ item.rating?.toFixed(1) || 'N/A' }}
+                                                    <strong class="ml-4">Note:</strong> ⭐ {{ Number(item.rating || 0).toFixed(1) }}
                                                 </p>
                                             </div>
                                         </div>

@@ -43,8 +43,8 @@ class PropertyController extends Controller
      */
     public function create()
     {
-        if (!Auth::user()->canListProperties()) {
-            return redirect()->route('properties.index')
+        if (!Auth::user()?->canListProperties()) {
+            return to_route('properties.index')
                 ->with('error', 'Vous devez avoir un permis vérifié pour lister une propriété.');
         }
 
@@ -56,7 +56,7 @@ class PropertyController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Auth::user()->canListProperties()) {
+        if (!Auth::user()?->canListProperties()) {
             abort(403, 'Unauthorized to create properties');
         }
 
@@ -267,8 +267,9 @@ class PropertyController extends Controller
      */
     public function myProperties(Request $request)
     {
-        $properties = Auth::user()
-            ->properties()
+        $user = Auth::user();
+
+        $properties = $user->properties()
             ->with(['primaryImage'])
             ->when($request->search, function ($query) use ($request) {
                 $query->where('title', 'like', "%{$request->search}%")
@@ -284,10 +285,10 @@ class PropertyController extends Controller
         return Inertia::render('Properties/MyProperties', [
             'properties' => $properties,
             'stats' => [
-                'total' => Auth::user()->properties()->count(),
-                'active' => Auth::user()->properties()->active()->count(),
-                'bookings' => Auth::user()->getTotalPropertyBookings(),
-                'earnings' => Auth::user()->getPropertyEarnings(),
+                'total' => $user->properties()->count(),
+                'active' => $user->properties()->active()->count(),
+                'bookings' => $user->getTotalPropertyBookings(),
+                'earnings' => $user->getPropertyEarnings(),
             ],
         ]);
     }

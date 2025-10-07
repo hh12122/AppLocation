@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { FormError } from '@/components/ui/form';
 import { Plus, Upload, X, MapPin, Euro, Settings, Camera, Shield } from 'lucide-vue-next';
 
 interface Props {
@@ -30,7 +31,7 @@ const form = useForm({
   model: '',
   year: '',
   condition: 'good',
-  
+
   // Dimensions
   length: '',
   width: '',
@@ -39,16 +40,16 @@ const form = useForm({
   size: '',
   capacity: '',
   area_sqm: '',
-  
+
   // Features & Items
   features: [] as string[],
   included_items: [] as string[],
   safety_equipment: [] as string[],
-  
+
   // Instructions
   usage_instructions: '',
   safety_instructions: '',
-  
+
   // Location
   address: '',
   city: '',
@@ -57,12 +58,12 @@ const form = useForm({
   latitude: '',
   longitude: '',
   pickup_instructions: '',
-  
+
   // Delivery
   delivery_available: false,
   delivery_radius: '',
   delivery_fee: '',
-  
+
   // Pricing
   hourly_rate: '',
   daily_rate: '',
@@ -70,13 +71,13 @@ const form = useForm({
   monthly_rate: '',
   security_deposit: '',
   cleaning_fee: '',
-  
+
   // Rental settings
   min_rental_duration: 1,
   max_rental_duration: '',
   rental_unit: 'day',
   pickup_type: 'both',
-  
+
   // Requirements
   min_age: '',
   license_required: false,
@@ -84,18 +85,18 @@ const form = useForm({
   experience_required: false,
   rental_requirements: '',
   restrictions: [] as string[],
-  
+
   // Insurance
   insurance_included: false,
   insurance_details: '',
   liability_terms: '',
-  
+
   // Settings
   instant_booking: false,
-  
+
   // Images
   images: [] as File[],
-  
+
   // Category-specific attributes
   category_attributes: {} as Record<string, any>,
 });
@@ -167,12 +168,12 @@ const previewUrls = ref<string[]>([]);
 const handleImageSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const files = target.files;
-  
+
   if (files) {
     Array.from(files).forEach(file => {
       if (form.images.length < 15) {
         form.images.push(file);
-        
+
         // Create preview URL
         const url = URL.createObjectURL(file);
         previewUrls.value.push(url);
@@ -184,7 +185,7 @@ const handleImageSelect = (event: Event) => {
 const removeImage = (index: number) => {
   // Revoke the object URL to prevent memory leaks
   URL.revokeObjectURL(previewUrls.value[index]);
-  
+
   form.images.splice(index, 1);
   previewUrls.value.splice(index, 1);
 };
@@ -229,7 +230,7 @@ const rentalUnitOptions = [
 
 <template>
   <Head title="Ajouter du matériel" />
-  
+
   <AppLayout>
     <div class="max-w-4xl mx-auto px-4 py-8">
       <div class="mb-8">
@@ -252,7 +253,7 @@ const rentalUnitOptions = [
           </TabsList>
 
           <!-- Basic Information -->
-          <TabsContent value="basic" class="space-y-6">
+          <TabsContent value="basic" class="space-y-6" forceMount>
             <Card>
               <CardHeader>
                 <CardTitle class="flex items-center gap-2">
@@ -273,9 +274,7 @@ const rentalUnitOptions = [
                       class="mt-1"
                       :class="{ 'border-red-500': form.errors.name }"
                     />
-                    <div v-if="form.errors.name" class="text-red-500 text-sm mt-1">
-                      {{ form.errors.name }}
-                    </div>
+                    <FormError :message="form.errors.name" />
                   </div>
 
                   <!-- Category -->
@@ -295,9 +294,7 @@ const rentalUnitOptions = [
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                    <div v-if="form.errors.category" class="text-red-500 text-sm mt-1">
-                      {{ form.errors.category }}
-                    </div>
+                    <FormError :message="form.errors.category" />
                   </div>
 
                   <!-- Subcategory -->
@@ -317,9 +314,7 @@ const rentalUnitOptions = [
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                    <div v-if="form.errors.subcategory" class="text-red-500 text-sm mt-1">
-                      {{ form.errors.subcategory }}
-                    </div>
+                    <FormError :message="form.errors.subcategory" />
                   </div>
 
                   <!-- Brand & Model -->
@@ -355,6 +350,7 @@ const rentalUnitOptions = [
                       placeholder="2023"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.year" />
                   </div>
 
                   <div>
@@ -387,9 +383,7 @@ const rentalUnitOptions = [
                     class="mt-1"
                     :class="{ 'border-red-500': form.errors.description }"
                   />
-                  <div v-if="form.errors.description" class="text-red-500 text-sm mt-1">
-                    {{ form.errors.description }}
-                  </div>
+                  <FormError :message="form.errors.description" />
                 </div>
 
                 <!-- Location -->
@@ -398,7 +392,7 @@ const rentalUnitOptions = [
                     <MapPin class="w-4 h-4" />
                     Localisation
                   </h3>
-                  
+
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                       <Label for="address">Adresse *</Label>
@@ -409,6 +403,7 @@ const rentalUnitOptions = [
                         class="mt-1"
                         :class="{ 'border-red-500': form.errors.address }"
                       />
+                      <FormError :message="form.errors.address" />
                     </div>
 
                     <div>
@@ -420,6 +415,7 @@ const rentalUnitOptions = [
                         class="mt-1"
                         :class="{ 'border-red-500': form.errors.city }"
                       />
+                      <FormError :message="form.errors.city" />
                     </div>
 
                     <div>
@@ -431,6 +427,7 @@ const rentalUnitOptions = [
                         class="mt-1"
                         :class="{ 'border-red-500': form.errors.postal_code }"
                       />
+                      <FormError :message="form.errors.postal_code" />
                     </div>
                   </div>
 
@@ -450,7 +447,7 @@ const rentalUnitOptions = [
           </TabsContent>
 
           <!-- Details -->
-          <TabsContent value="details" class="space-y-6">
+          <TabsContent value="details" class="space-y-6" forceMount>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Features -->
               <Card>
@@ -558,7 +555,7 @@ const rentalUnitOptions = [
           </TabsContent>
 
           <!-- Pricing -->
-          <TabsContent value="pricing" class="space-y-6">
+          <TabsContent value="pricing" class="space-y-6" forceMount>
             <Card>
               <CardHeader>
                 <CardTitle class="flex items-center gap-2">
@@ -579,6 +576,7 @@ const rentalUnitOptions = [
                       placeholder="25.00"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.hourly_rate" />
                   </div>
 
                   <div>
@@ -592,6 +590,7 @@ const rentalUnitOptions = [
                       placeholder="50.00"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.daily_rate" />
                   </div>
 
                   <div>
@@ -605,6 +604,7 @@ const rentalUnitOptions = [
                       placeholder="300.00"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.weekly_rate" />
                   </div>
 
                   <div>
@@ -618,6 +618,7 @@ const rentalUnitOptions = [
                       placeholder="1000.00"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.monthly_rate" />
                   </div>
                 </div>
 
@@ -635,6 +636,7 @@ const rentalUnitOptions = [
                       placeholder="100.00"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.security_deposit" />
                   </div>
 
                   <div>
@@ -648,6 +650,7 @@ const rentalUnitOptions = [
                       placeholder="25.00"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.cleaning_fee" />
                   </div>
 
                   <div>
@@ -673,6 +676,7 @@ const rentalUnitOptions = [
                 <div class="space-y-4">
                   <div class="flex items-center gap-2">
                     <Switch
+                      :key="`delivery-${form.delivery_available}`"
                       id="delivery_available"
                       v-model="form.delivery_available"
                     />
@@ -691,6 +695,7 @@ const rentalUnitOptions = [
                         placeholder="10"
                         class="mt-1"
                       />
+                      <FormError :message="form.errors.delivery_radius" />
                     </div>
 
                     <div>
@@ -704,6 +709,7 @@ const rentalUnitOptions = [
                         placeholder="15.00"
                         class="mt-1"
                       />
+                      <FormError :message="form.errors.delivery_fee" />
                     </div>
                   </div>
                 </div>
@@ -712,7 +718,7 @@ const rentalUnitOptions = [
           </TabsContent>
 
           <!-- Requirements -->
-          <TabsContent value="requirements" class="space-y-6">
+          <TabsContent value="requirements" class="space-y-6" forceMount>
             <Card>
               <CardHeader>
                 <CardTitle class="flex items-center gap-2">
@@ -733,6 +739,7 @@ const rentalUnitOptions = [
                       class="mt-1"
                       :class="{ 'border-red-500': form.errors.min_rental_duration }"
                     />
+                    <FormError :message="form.errors.min_rental_duration" />
                   </div>
 
                   <div>
@@ -746,6 +753,7 @@ const rentalUnitOptions = [
                       placeholder="30"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.max_rental_duration" />
                   </div>
 
                   <div>
@@ -759,12 +767,14 @@ const rentalUnitOptions = [
                       placeholder="18"
                       class="mt-1"
                     />
+                    <FormError :message="form.errors.min_age" />
                   </div>
                 </div>
 
                 <div class="space-y-4">
                   <div class="flex items-center gap-2">
                     <Switch
+                      :key="`license-${form.license_required}`"
                       id="license_required"
                       v-model="form.license_required"
                     />
@@ -783,6 +793,7 @@ const rentalUnitOptions = [
 
                   <div class="flex items-center gap-2">
                     <Switch
+                      :key="`experience-${form.experience_required}`"
                       id="experience_required"
                       v-model="form.experience_required"
                     />
@@ -791,6 +802,7 @@ const rentalUnitOptions = [
 
                   <div class="flex items-center gap-2">
                     <Switch
+                      :key="`instant-${form.instant_booking}`"
                       id="instant_booking"
                       v-model="form.instant_booking"
                     />
@@ -812,7 +824,7 @@ const rentalUnitOptions = [
                 <!-- Restrictions -->
                 <div class="space-y-4">
                   <Label>Restrictions d'usage</Label>
-                  
+
                   <div class="flex gap-2">
                     <Input
                       v-model="newRestriction"
@@ -847,7 +859,7 @@ const rentalUnitOptions = [
           </TabsContent>
 
           <!-- Images -->
-          <TabsContent value="images" class="space-y-6">
+          <TabsContent value="images" class="space-y-6" forceMount>
             <Card>
               <CardHeader>
                 <CardTitle class="flex items-center gap-2">
@@ -881,9 +893,7 @@ const rentalUnitOptions = [
                 </div>
 
                 <!-- Error -->
-                <div v-if="form.errors.images" class="text-red-500 text-sm mb-4">
-                  {{ form.errors.images }}
-                </div>
+                <FormError :message="form.errors.images" class="mb-4" />
 
                 <!-- Image Previews -->
                 <div v-if="form.images.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -897,12 +907,12 @@ const rentalUnitOptions = [
                       :alt="`Image ${index + 1}`"
                       class="w-full h-32 object-cover rounded-lg border"
                     />
-                    
+
                     <!-- Primary badge -->
                     <div v-if="index === 0" class="absolute top-2 left-2">
                       <Badge class="text-xs">Principal</Badge>
                     </div>
-                    
+
                     <!-- Remove button -->
                     <button
                       type="button"

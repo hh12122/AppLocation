@@ -397,7 +397,7 @@ const getRentalUnitLabel = (unit: string) => {
                   <p class="font-medium">{{ equipment.owner.name }}</p>
                   <div class="flex items-center gap-1 text-gray-600">
                     <span>⭐</span>
-                    <span>{{ equipment.owner.rating?.toFixed(1) || 'N/A' }}</span>
+                    <span>{{ Number(equipment.owner.rating || 0).toFixed(1) }}</span>
                     <span>({{ equipment.owner.rating_count || 0 }})</span>
                   </div>
                 </div>
@@ -421,14 +421,14 @@ const getRentalUnitLabel = (unit: string) => {
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>Sous-total</span>
-                  <span>{{ (selectedUnit?.rate * estimatedDuration * form.quantity).toFixed(2) }}€</span>
+                  <span>{{ Number(selectedUnit?.rate * estimatedDuration * form.quantity || 0).toFixed(2) }}€</span>
                 </div>
                 
                 <Separator />
                 
                 <div class="flex justify-between text-sm">
                   <span>Frais de service (5%)</span>
-                  <span>{{ (selectedUnit?.rate * estimatedDuration * form.quantity * 0.05).toFixed(2) }}€</span>
+                  <span>{{ Number(selectedUnit?.rate * estimatedDuration * form.quantity * 0.05 || 0).toFixed(2) }}€</span>
                 </div>
                 <div v-if="form.pickup_location && equipment.delivery_available" class="flex justify-between text-sm">
                   <span>Frais de livraison</span>
@@ -443,7 +443,7 @@ const getRentalUnitLabel = (unit: string) => {
                 
                 <div class="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>{{ estimatedPrice.toFixed(2) }}€</span>
+                  <span>{{ Number(estimatedPrice || 0).toFixed(2) }}€</span>
                 </div>
               </div>
 
