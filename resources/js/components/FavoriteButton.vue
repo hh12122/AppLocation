@@ -3,11 +3,19 @@ import { ref, computed } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { Heart } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-// import { toast } from '@/composables/useToast'
+import { toast } from '@/composables/useToast'
 
 interface Props {
-    vehicleId: number
+    // New polymorphic API
+    favoritableType?: 'Vehicle' | 'Equipment' | 'Property'
+    favoritableId?: number
+    isFavorited?: boolean
+
+    // Old vehicle-only API (backward compatibility)
+    vehicleId?: number
     initialIsFavorited?: boolean
+
+    // Common props
     size?: 'sm' | 'md' | 'lg'
     showText?: boolean
     disabled?: boolean
@@ -15,13 +23,28 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
     initialIsFavorited: false,
+    isFavorited: false,
     size: 'md',
     showText: false,
     disabled: false
 })
 
 const page = usePage()
-const isFavorited = ref(props.initialIsFavorited)
+
+// Auto-detect API mode and compute values
+const itemType = computed(() => {
+    if (props.favoritableType) {
+        return props.favoritableType.toLowerCase()
+    }
+    return props.vehicleId ? 'vehicle' : 'vehicle' // Default to vehicle for backward compatibility
+})
+
+const itemId = computed(() => {
+    return props.favoritableId ?? props.vehicleId ?? 0
+})
+
+// Use the correct initial favorited state
+const isFavorited = ref(props.isFavorited ?? props.initialIsFavorited)
 const isLoading = ref(false)
 
 const sizeClasses = computed(() => {
@@ -46,7 +69,7 @@ const buttonSizeClasses = computed(() => {
     }
 })
 
-const toggleFavorite = async () => {
+const toggleFavorite = () => {
     if (props.disabled || isLoading.value) return
 
     // Check if user is authenticated
@@ -57,36 +80,52 @@ const toggleFavorite = async () => {
 
     isLoading.value = true
 
-    try {
-        const response = await fetch('/favorites/toggle', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    router.post(
+        route('favorites.toggle'),
+        {
+            type: itemType.value,
+            item_id: itemId.value
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: (response) => {
+                // Toggle the favorite state locally
+                const wasFavorited = isFavorited.value
+                isFavorited.value = !isFavorited.value
+
+                // Show success toast
+                const message = response.props?.flash?.success ||
+                    (isFavorited.value ? 'Ajouté aux favoris' : 'Retiré des favoris')
+
+                toast({
+                    title: 'Succès',
+                    description: message,
+                    variant: 'success',
+                    duration: 3000
+                })
             },
-            body: JSON.stringify({
-                vehicle_id: props.vehicleId
-            })
-        })
+            onError: (errors) => {
+                console.error('Error toggling favorite:', errors)
 
-        const data = await response.json()
+                // Get error message from response
+                const errorMessage = page.props?.flash?.error ||
+                    errors?.message ||
+                    Object.values(errors)[0] ||
+                    'Impossible de modifier les favoris'
 
-        if (response.ok && data.success) {
-            isFavorited.value = data.is_favorited
-            
-            // Simple notification without toast for now
-            console.log(data.message)
-        } else {
-            throw new Error(data.message || 'Une erreur est survenue')
+                toast({
+                    title: 'Erreur',
+                    description: errorMessage as string,
+                    variant: 'destructive',
+                    duration: 4000
+                })
+            },
+            onFinish: () => {
+                isLoading.value = false
+            }
         }
-    } catch (error) {
-        console.error('Error toggling favorite:', error)
-        
-        // Simple error handling without toast for now
-        alert('Erreur: ' + (error instanceof Error ? error.message : 'Impossible de modifier les favoris'))
-    } finally {
-        isLoading.value = false
-    }
+    )
 }
 </script>
 
@@ -98,14 +137,14 @@ const toggleFavorite = async () => {
         :size="size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'default'"
         :class="[
             'transition-all duration-200',
-            isFavorited 
-                ? 'text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100' 
+            isFavorited
+                ? 'text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100'
                 : 'text-gray-400 hover:text-red-500 hover:bg-red-50',
             buttonSizeClasses,
             { 'opacity-50 cursor-not-allowed': disabled || isLoading }
         ]"
     >
-        <Heart 
+        <Heart
             :class="[
                 sizeClasses,
                 'transition-all duration-200',

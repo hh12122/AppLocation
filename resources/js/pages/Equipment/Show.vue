@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import FavoriteButton from '@/components/FavoriteButton.vue';
 import {
   Calendar,
   Euro,
@@ -292,9 +293,13 @@ const getSimilarEquipmentImage = (equipment: Equipment) => {
                 {{ equipment.name }}
               </h1>
               <div class="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Heart class="w-4 h-4" />
-                </Button>
+                <FavoriteButton
+                  v-if="$page.props.auth?.user"
+                  favoritable-type="Equipment"
+                  :favoritable-id="equipment.id"
+                  :is-favorited="isFavorite || false"
+                  size="sm"
+                />
                 <Button variant="outline" size="sm">
                   <Share2 class="w-4 h-4" />
                 </Button>

@@ -39,6 +39,12 @@ class Favorite extends Model
             ->where('favoritable_type', Equipment::class);
     }
 
+    public function property(): BelongsTo
+    {
+        return $this->belongsTo(Property::class, 'favoritable_id')
+            ->where('favoritable_type', Property::class);
+    }
+
     // Scopes
     public function scopeForUser($query, $userId)
     {
@@ -53,6 +59,11 @@ class Favorite extends Model
     public function scopeEquipment($query)
     {
         return $query->where('favoritable_type', Equipment::class);
+    }
+
+    public function scopeProperties($query)
+    {
+        return $query->where('favoritable_type', Property::class);
     }
 
     public function scopeWithVehicleDetails($query)
@@ -81,6 +92,19 @@ class Favorite extends Model
         ])->where('favoritable_type', Equipment::class);
     }
 
+    public function scopeWithPropertyDetails($query)
+    {
+        return $query->with([
+            'favoritable' => function ($q) {
+                $q->with(['owner:id,name,rating', 'images' => function ($img) {
+                    $img->where('is_primary', true)->orWhere(function($query) {
+                        $query->orderBy('sort_order')->limit(1);
+                    });
+                }]);
+            }
+        ])->where('favoritable_type', Property::class);
+    }
+
     public function scopeWithDetails($query)
     {
         return $query->with([
@@ -103,6 +127,11 @@ class Favorite extends Model
     public function isEquipment(): bool
     {
         return $this->favoritable_type === Equipment::class;
+    }
+
+    public function isProperty(): bool
+    {
+        return $this->favoritable_type === Property::class;
     }
 
     public function getFavoritableItem()

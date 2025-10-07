@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
 import NotificationContainer from '@/components/Chat/NotificationContainer.vue';
+import { Toaster } from '@/components/ui/toast';
 import type { BreadcrumbItemType } from '@/types';
 
 interface Props {
@@ -23,5 +24,6 @@ withDefaults(defineProps<Props>(), {
             <slot />
         </AppContent>
         <NotificationContainer />
+        <Toaster />
     </AppShell>
 </template>

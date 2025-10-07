@@ -2,6 +2,7 @@
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
+import { Toaster } from '@/components/ui/toast';
 
 defineProps<{
     title?: string;
@@ -51,5 +52,6 @@ defineProps<{
         <main>
             <slot />
         </main>
+        <Toaster />
     </div>
 </template>

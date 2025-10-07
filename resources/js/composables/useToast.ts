@@ -44,7 +44,7 @@ export function removeToast(id: string) {
 export function useToast() {
     return {
         toast,
-        toasts: toasts.value,
+        toasts,
         removeToast
     }
 }

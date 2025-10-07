@@ -354,9 +354,10 @@ const mapMarkers = computed(() => {
                                         </div>
                                     </div>
                                     <div v-if="$page.props.auth.user">
-                                        <FavoriteButton 
-                                            :vehicle-id="vehicle.id" 
-                                            :initial-is-favorited="isFavorited || false"
+                                        <FavoriteButton
+                                            favoritable-type="Vehicle"
+                                            :favoritable-id="vehicle.id"
+                                            :is-favorited="isFavorited || false"
                                             :show-text="true"
                                             size="lg"
                                         />

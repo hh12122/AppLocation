@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Favorite;
 use App\Models\Vehicle;
 use App\Models\Equipment;
+use App\Models\Property;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -29,12 +30,14 @@ class FavoriteController extends Controller implements HasMiddleware
         $query = Favorite::forUser(auth()->id());
 
         // Filter by type if specified
-        $type = $request->get('type', 'all'); // all, vehicles, equipment
+        $type = $request->get('type', 'all'); // all, vehicles, equipment, properties
 
         if ($type === 'vehicles') {
             $query->vehicles()->withVehicleDetails();
         } elseif ($type === 'equipment') {
             $query->equipment()->withEquipmentDetails();
+        } elseif ($type === 'properties') {
+            $query->properties()->withPropertyDetails();
         } else {
             $query->withDetails();
         }
@@ -48,6 +51,7 @@ class FavoriteController extends Controller implements HasMiddleware
                 'total' => Favorite::forUser(auth()->id())->count(),
                 'vehicles' => Favorite::forUser(auth()->id())->vehicles()->count(),
                 'equipment' => Favorite::forUser(auth()->id())->equipment()->count(),
+                'properties' => Favorite::forUser(auth()->id())->properties()->count(),
             ]
         ]);
     }
@@ -58,7 +62,7 @@ class FavoriteController extends Controller implements HasMiddleware
     public function store(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:vehicle,equipment',
+            'type' => 'required|in:vehicle,equipment,property',
             'item_id' => 'required|integer',
             'notes' => 'nullable|string|max:500'
         ]);
@@ -72,11 +76,16 @@ class FavoriteController extends Controller implements HasMiddleware
             $item = Vehicle::findOrFail($itemId);
             $modelClass = Vehicle::class;
             $itemName = 'véhicule';
-        } else {
+        } elseif ($type === 'equipment') {
             $request->validate(['item_id' => 'exists:equipment,id']);
             $item = Equipment::findOrFail($itemId);
             $modelClass = Equipment::class;
             $itemName = 'matériel';
+        } else {
+            $request->validate(['item_id' => 'exists:properties,id']);
+            $item = Property::findOrFail($itemId);
+            $modelClass = Property::class;
+            $itemName = 'propriété';
         }
 
         // Check if user can favorite this item (not their own)
@@ -127,17 +136,39 @@ class FavoriteController extends Controller implements HasMiddleware
     }
 
     /**
-     * Remove a vehicle from favorites
+     * Remove an item from favorites (polymorphic)
      */
-    public function destroy($vehicleId)
+    public function destroy(Request $request, $itemId)
     {
+        $type = $request->get('type', 'vehicle'); // Default to vehicle for backward compatibility
+
+        // Get the model class
+        $modelClass = match($type) {
+            'equipment' => Equipment::class,
+            'property' => Property::class,
+            default => Vehicle::class,
+        };
+
         $favorite = Favorite::where('user_id', auth()->id())
-            ->where('vehicle_id', $vehicleId)
+            ->where('favoritable_type', $modelClass)
+            ->where('favoritable_id', $itemId)
             ->first();
+
+        if (!$favorite) {
+            // Try legacy vehicle_id for backward compatibility
+            $favorite = Favorite::where('user_id', auth()->id())
+                ->where('vehicle_id', $itemId)
+                ->first();
+        }
 
         if ($favorite) {
             $favorite->delete();
-            return back()->with('success', 'Véhicule retiré des favoris.');
+            $itemName = match($type) {
+                'equipment' => 'Matériel',
+                'property' => 'Propriété',
+                default => 'Véhicule',
+            };
+            return back()->with('success', $itemName . ' retiré des favoris.');
         }
 
         return back()->with('error', 'Favori non trouvé.');
@@ -149,7 +180,7 @@ class FavoriteController extends Controller implements HasMiddleware
     public function toggle(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:vehicle,equipment',
+            'type' => 'required|in:vehicle,equipment,property',
             'item_id' => 'required|integer'
         ]);
 
@@ -162,19 +193,33 @@ class FavoriteController extends Controller implements HasMiddleware
             $item = Vehicle::findOrFail($itemId);
             $modelClass = Vehicle::class;
             $itemName = 'véhicule';
-        } else {
+        } elseif ($type === 'equipment') {
             $request->validate(['item_id' => 'exists:equipment,id']);
             $item = Equipment::findOrFail($itemId);
             $modelClass = Equipment::class;
             $itemName = 'matériel';
+        } else {
+            $request->validate(['item_id' => 'exists:properties,id']);
+            $item = Property::findOrFail($itemId);
+            $modelClass = Property::class;
+            $itemName = 'propriété';
         }
 
         // Check if user can favorite this item (not their own)
         if ($item->owner_id === auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => "Vous ne pouvez pas ajouter votre propre {$itemName} aux favoris."
-            ], 400);
+            $errorMessage = "Vous ne pouvez pas ajouter votre propre {$itemName} aux favoris.";
+
+            if ($request->wantsJson() || !$request->inertia()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage
+                ], 422);
+            }
+
+            // For Inertia requests, return validation error
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'owner' => [$errorMessage]
+            ]);
         }
 
         $favorite = Favorite::where('user_id', auth()->id())
@@ -185,11 +230,8 @@ class FavoriteController extends Controller implements HasMiddleware
         if ($favorite) {
             // Remove from favorites
             $favorite->delete();
-            return response()->json([
-                'success' => true,
-                'is_favorited' => false,
-                'message' => ucfirst($itemName) . ' retiré des favoris'
-            ]);
+            $message = ucfirst($itemName) . ' retiré des favoris';
+            $isFavorited = false;
         } else {
             // Add to favorites
             Favorite::create([
@@ -198,13 +240,20 @@ class FavoriteController extends Controller implements HasMiddleware
                 'favoritable_id' => $itemId,
                 'vehicle_id' => $type === 'vehicle' ? $itemId : null, // Keep for backwards compatibility
             ]);
+            $message = ucfirst($itemName) . ' ajouté aux favoris';
+            $isFavorited = true;
+        }
 
+        // Return JSON for API calls, back() for Inertia
+        if ($request->wantsJson() || !$request->inertia()) {
             return response()->json([
                 'success' => true,
-                'is_favorited' => true,
-                'message' => ucfirst($itemName) . ' ajouté aux favoris'
+                'is_favorited' => $isFavorited,
+                'message' => $message
             ]);
         }
+
+        return back()->with('success', $message);
     }
 
     /**
@@ -218,11 +267,11 @@ class FavoriteController extends Controller implements HasMiddleware
 
         $type = $request->get('type', 'vehicle'); // Default to vehicle for backwards compatibility
 
-        if ($type === 'vehicle') {
-            $modelClass = Vehicle::class;
-        } else {
-            $modelClass = Equipment::class;
-        }
+        $modelClass = match($type) {
+            'equipment' => Equipment::class,
+            'property' => Property::class,
+            default => Vehicle::class,
+        };
 
         $isFavorited = Favorite::where('user_id', auth()->id())
             ->where('favoritable_type', $modelClass)

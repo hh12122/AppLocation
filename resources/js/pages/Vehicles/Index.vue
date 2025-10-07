@@ -398,8 +398,9 @@ const transmissionLabels = {
                             </Badge>
                             <div v-if="$page.props.auth.user" class="absolute top-2 left-2">
                                 <FavoriteButton
-                                    :vehicle-id="vehicle.id"
-                                    :initial-is-favorited="props.favoritedVehicleIds?.includes(vehicle.id) || false"
+                                    favoritable-type="Vehicle"
+                                    :favoritable-id="vehicle.id"
+                                    :is-favorited="props.favoritedVehicleIds?.includes(vehicle.id) || false"
                                     size="sm"
                                 />
                             </div>
