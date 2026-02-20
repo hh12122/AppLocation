@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\GeoNotificationController as AdminGeoNotification
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Broadcasting routes are now registered in BroadcastServiceProvider
+
 Route::get('/', function () {
     return Inertia::render('Home');
 })->name('home');
@@ -133,10 +135,10 @@ Route::middleware('auth')->group(function () {
     Route::put('favorites/{favorite}', [FavoriteController::class, 'update'])->name('favorites.update');
     Route::delete('favorites/{vehicleId}', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
     Route::post('favorites/toggle', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
-    
+
     // Item-agnostic check route
     Route::get('favorites/check/{itemId}', [FavoriteController::class, 'check'])->name('favorites.check');
-    
+
     // Legacy vehicle-specific route for backwards compatibility
     Route::get('favorites/check-vehicle/{vehicleId}', [FavoriteController::class, 'checkVehicle'])->name('favorites.check.vehicle');
 });
@@ -163,17 +165,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('payments/{rental}', [PaymentController::class, 'show'])->name('payments.show');
     Route::get('payments/success', [PaymentController::class, 'success'])->name('payments.success');
     Route::get('payments/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
-    
+
     // API routes for payment processing
     Route::post('api/payments/stripe/create-intent', [PaymentController::class, 'createStripeIntent'])
         ->name('payments.stripe.create-intent');
     Route::post('api/payments/paypal/create-order', [PaymentController::class, 'createPayPalOrder'])
         ->name('payments.paypal.create-order');
-    
+
     // PayPal return URLs
     Route::get('payments/paypal/success', [PaymentController::class, 'success'])->name('payments.paypal.success');
     Route::get('payments/paypal/cancel', [PaymentController::class, 'cancel'])->name('payments.paypal.cancel');
-    
+
     // Refund endpoint for owners and admins
     Route::post('payments/{payment}/refund', [PaymentController::class, 'refund'])->name('payments.refund');
 });
@@ -187,6 +189,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('chat/{conversation}', [\App\Http\Controllers\ChatController::class, 'show'])->name('chat.show');
     Route::post('chat/rental/{rental}', [\App\Http\Controllers\ChatController::class, 'createForRental'])->name('chat.create-rental');
     Route::post('chat/{conversation}/archive', [\App\Http\Controllers\ChatController::class, 'archive'])->name('chat.archive');
+
+    // Chat API routes
+    Route::prefix('api/chat')->group(function () {
+        Route::post('/send', [\App\Http\Controllers\ChatController::class, 'store'])->name('api.chat.send');
+        Route::get('/conversations/{conversation}/messages', [\App\Http\Controllers\ChatController::class, 'getMessages'])
+            ->name('api.chat.messages');
+        Route::post('/conversations/{conversation}/messages', [\App\Http\Controllers\ChatController::class, 'sendMessage'])
+            ->name('api.chat.send-message');
+        Route::post('/conversations/{conversation}/mark-read', [\App\Http\Controllers\ChatController::class, 'markAsRead'])
+            ->name('api.chat.mark-read');
+        Route::get('/unread-count', [\App\Http\Controllers\ChatController::class, 'getUnreadCount'])
+            ->name('api.chat.unread-count');
+    });
 });
 
 // Referral routes
@@ -249,8 +264,8 @@ Route::prefix('api/ai')->middleware(['auth'])->group(function () {
     Route::post('recommendations/{id}/feedback', [\App\Http\Controllers\AIRecommendationController::class, 'provideFeedback']);
 });
 
-Route::get('ai/dashboard', [\App\Http\Controllers\AIRecommendationController::class, 'dashboard'])
-    ->middleware(['auth'])->name('ai.dashboard');
+Route::get('/dashboard', [\App\Http\Controllers\AIRecommendationController::class, 'dashboard'])
+    ->middleware(['auth'])->name('dashboard');
 
 // Geolocation Notification routes
 Route::middleware(['auth'])->group(function () {

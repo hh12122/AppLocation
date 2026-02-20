@@ -165,8 +165,8 @@ const getPaymentStatusColor = (status: string): string => {
             <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
                 <!-- Back button -->
                 <div class="mb-6">
-                    <Link 
-                        :href="isRenter ? route('rentals.my') : route('rentals.bookings')" 
+                    <Link
+                        :href="isRenter ? route('rentals.my') : route('rentals.bookings')"
                         class="text-blue-600 hover:text-blue-800 flex items-center"
                     >
                         ← Retour aux {{ isRenter ? 'réservations' : 'demandes' }}
@@ -198,7 +198,7 @@ const getPaymentStatusColor = (status: string): string => {
                             </CardHeader>
                             <CardContent>
                                 <div class="flex space-x-4">
-                                    <img 
+                                    <img
                                         :src="getPrimaryImage()"
                                         :alt="`${rental.vehicle.brand} ${rental.vehicle.model}`"
                                         class="w-24 h-24 object-cover rounded-lg"
@@ -208,7 +208,7 @@ const getPaymentStatusColor = (status: string): string => {
                                             {{ rental.vehicle.year }} {{ rental.vehicle.brand }} {{ rental.vehicle.model }}
                                         </h3>
                                         <p class="text-gray-600">{{ rental.vehicle.license_plate }}</p>
-                                        <Link 
+                                        <Link
                                             :href="route('vehicles.show', rental.vehicle.id)"
                                             class="text-blue-600 hover:text-blue-800 text-sm"
                                         >
@@ -408,19 +408,12 @@ const getPaymentStatusColor = (status: string): string => {
                                     </a>
 
                                     <!-- Chat button -->
-                                    <form
-                                        v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
-                                        :action="route('chat.create-rental', rental.id)"
-                                        method="POST"
+                                    <Button
+                                        @click="() => router.post(route('chat.create-rental', rental.id))"
+                                        class="w-full bg-green-600 hover:bg-green-700"
                                     >
-                                        <input type="hidden" name="_token" :value="$page.props.csrf_token" />
-                                        <button
-                                            type="submit"
-                                            class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 text-center"
-                                        >
-                                            💬 Ouvrir le chat
-                                        </button>
-                                    </form>
+                                        💬 Ouvrir le chat
+                                    </Button>
 
                                     <!-- Contact buttons -->
                                     <div v-if="rental.status === 'confirmed' || rental.status === 'active'" class="pt-2">

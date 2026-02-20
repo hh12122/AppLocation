@@ -55,6 +55,86 @@ Une plateforme web complète de location entre particuliers (véhicules, propri�
 - **Location d'équipements** : Gestion de matériel divers avec livraison et retour
 - **Données de test** : 3 véhicules, propriétés et équipements avec 2 utilisateurs pour tester
 
+## 💬 Système de Messagerie en Temps Réel
+
+Le système de messagerie permet aux **propriétaires** et **locataires** de communiquer directement à propos d'une location spécifique.
+
+### Comment ça marche ?
+
+#### 🔹 Démarrer une Conversation
+
+1. **Depuis une location** : Accédez aux détails d'une réservation active
+2. **Cliquez sur "Contacter"** ou l'icône de chat
+3. Une conversation est automatiquement créée pour cette location
+4. Vous êtes redirigé vers l'interface de chat
+
+**Note importante** : Il y a une seule conversation par location entre le propriétaire et le locataire.
+
+#### 🔹 Accéder à vos Messages
+
+- **Icône de chat dans l'en-tête** : Affiche un badge avec le nombre de messages non lus
+- **Page Messages (`/chat`)** : Liste toutes vos conversations avec :
+  - Nom de l'autre participant
+  - Véhicule concerné
+  - Dernier message reçu
+  - Nombre de messages non lus
+  - Date du dernier échange
+
+#### 🔹 Envoyer et Recevoir des Messages
+
+1. **Ouvrir la conversation** en cliquant dessus
+2. **Taper votre message** dans le champ de saisie en bas
+3. **Appuyer sur Entrée** ou cliquer sur "Envoyer"
+4. Le message apparaît **instantanément** pour les deux utilisateurs (temps réel)
+5. Les messages s'affichent avec :
+   - Votre côté (droite, fond bleu)
+   - L'autre utilisateur (gauche, fond blanc)
+   - Heure d'envoi
+   - Indicateur de lecture
+
+#### 🔹 Notifications en Temps Réel
+
+**Badge de messages non lus :**
+- Un badge rouge apparaît sur l'icône de chat dans l'en-tête
+- Affiche le nombre total de messages non lus
+- Se met à jour automatiquement en temps réel
+
+**Notifications du navigateur :**
+- Lors de la première utilisation, le système demande la permission d'afficher des notifications
+- Quand vous recevez un nouveau message (même si vous êtes sur une autre page) :
+  - Une notification apparaît sur votre bureau/mobile
+  - Contient le nom de l'expéditeur et le message
+  - Cliquer dessus vous amène directement à la conversation
+
+**Indicateurs de lecture :**
+- Les messages sont marqués comme "lus" automatiquement quand vous ouvrez la conversation
+- L'autre utilisateur peut voir que vous avez lu ses messages
+
+### ⚡ Caractéristiques Techniques
+
+- **Temps réel** : Les messages arrivent instantanément grâce à WebSockets (Laravel Echo + Pusher)
+- **Contexte de location** : Chaque conversation est liée à une location spécifique
+- **Sécurité** : Seuls le propriétaire et le locataire d'une location peuvent accéder à leur conversation
+- **Archivage** : Possibilité d'archiver les anciennes conversations
+- **Types de messages** : Support pour texte, images et messages système
+- **Statut en ligne** : Système de présence pour voir qui est connecté (optionnel)
+
+### 📱 Interface Utilisateur
+
+**Page Liste des Conversations (`/chat`)** :
+- Vue d'ensemble de toutes vos conversations
+- Recherche et filtrage
+- Tri par date de dernier message
+- Badge de messages non lus par conversation
+
+**Page Conversation (`/chat/{conversation}`)** :
+- Messages en temps réel
+- Champ de saisie pour envoyer des messages
+- Sidebar avec détails de la location
+- Liens rapides vers la réservation et le véhicule
+- Téléchargement du contrat PDF
+- Conseils pour bien communiquer
+
 ## 🚀 Installation et Configuration
 
 ### Prérequis
@@ -98,13 +178,58 @@ php artisan db:seed --class=VehicleSeeder  # Pour les données de test
 php artisan storage:link
 ```
 
-7. **Lancer l'application**
+7. **Configuration du système de messagerie en temps réel** (Optionnel mais recommandé)
+
+Le chat en temps réel utilise Laravel Echo avec Pusher pour les WebSockets.
+
+**Option 1 : Utiliser Pusher (Recommandé pour la production)**
+
+a. Créez un compte gratuit sur [Pusher.com](https://pusher.com)
+b. Créez une nouvelle app dans votre dashboard Pusher
+c. Copiez vos credentials et ajoutez-les dans votre `.env` :
+
+```env
+BROADCAST_DRIVER=pusher
+
+PUSHER_APP_ID=your_app_id
+PUSHER_APP_KEY=your_app_key
+PUSHER_APP_SECRET=your_app_secret
+PUSHER_APP_CLUSTER=eu  # ou us2, ap1, etc. selon votre région
+```
+
+**Option 2 : Utiliser Reverb (Alternative Laravel)**
+
+```bash
+php artisan reverb:install
+```
+
+Puis dans votre `.env` :
+```env
+BROADCAST_DRIVER=reverb
+```
+
+**Tester la configuration :**
+```bash
+# Lancer le serveur de queue pour traiter les jobs de broadcast
+php artisan queue:work
+
+# Dans un autre terminal, tester l'envoi d'événements
+php artisan tinker
+>>> broadcast(new App\Events\TestEvent());
+```
+
+**Note** : Sans cette configuration, l'application fonctionnera toujours mais les messages ne seront pas livrés en temps réel. Les utilisateurs devront rafraîchir la page pour voir les nouveaux messages.
+
+8. **Lancer l'application**
 ```bash
 # Terminal 1 - Serveur Laravel
 php artisan serve
 
 # Terminal 2 - Vite dev server
 npm run dev
+
+# Terminal 3 - Queue worker (pour les notifications en temps réel)
+php artisan queue:work
 
 # Ou tout en un (recommandé)
 composer run dev
@@ -250,6 +375,53 @@ Après avoir exécuté le seeder, vous pouvez utiliser ces comptes :
    - ✅ Intégration avec Laravel Echo et Pusher
    - ✅ Composable useNotifications pour la gestion des notifications
    - ✅ Notifications push géolocalisées avec système complet de localisation
+
+   **Comment tester le système de messagerie :**
+
+   a. **Créer une conversation depuis une location :**
+      1. Connectez-vous avec le compte propriétaire (owner@example.com)
+      2. Allez dans "Mes Véhicules" et créez une location (ou utilisez une existante)
+      3. Déconnectez-vous et connectez-vous avec le compte locataire (renter@example.com)
+      4. Réservez un véhicule du propriétaire
+      5. Une fois la réservation confirmée, accédez aux détails de la location
+      6. Cliquez sur "Contacter" ou l'icône de chat pour démarrer une conversation
+
+   b. **Envoyer et recevoir des messages en temps réel :**
+      1. Ouvrez deux navigateurs (ou fenêtres incognito)
+      2. Connectez-vous comme propriétaire dans un navigateur
+      3. Connectez-vous comme locataire dans l'autre navigateur
+      4. Ouvrez la même conversation dans les deux navigateurs
+      5. Envoyez un message depuis l'un → Il devrait apparaître **instantanément** dans l'autre
+      6. Vérifiez que les messages s'alignent correctement (droite pour l'expéditeur, gauche pour le destinataire)
+
+   c. **Tester les notifications en temps réel :**
+      1. Dans un navigateur, restez sur une page différente (pas la page de chat)
+      2. Dans l'autre navigateur, envoyez un message
+      3. Vérifiez que le **badge rouge** sur l'icône de chat se met à jour avec le nombre de messages non lus
+      4. Si les permissions sont activées, une **notification de bureau** devrait apparaître
+      5. Cliquez sur l'icône de chat pour voir la liste des conversations avec le badge de messages non lus
+
+   d. **Vérifier les indicateurs de lecture :**
+      1. Envoyez plusieurs messages sans que l'autre utilisateur ouvre la conversation
+      2. Les messages doivent avoir `read_at = null` dans la base de données
+      3. Quand l'autre utilisateur ouvre la conversation, les messages sont automatiquement marqués comme lus
+      4. Le badge de messages non lus disparaît
+
+   e. **Tester l'interface et les fonctionnalités :**
+      - ✅ Page `/chat` affiche toutes les conversations avec aperçu du dernier message
+      - ✅ Badge de messages non lus sur chaque conversation
+      - ✅ Tri par date de dernier message (les plus récentes en haut)
+      - ✅ Cliquer sur une conversation ouvre `/chat/{conversation}`
+      - ✅ Messages affichés avec timestamps et nom de l'expéditeur
+      - ✅ Auto-scroll vers le dernier message
+      - ✅ Sidebar affiche les détails de la location (véhicule, dates, statut)
+      - ✅ Liens rapides vers la réservation et le véhicule
+      - ✅ Permission de notification du navigateur demandée au premier message
+
+   f. **Vérifier la sécurité :**
+      1. Essayez d'accéder à une conversation d'un autre utilisateur via l'URL
+      2. Vous devriez recevoir une erreur 403 (Forbidden)
+      3. Seuls les participants (propriétaire + locataire) peuvent accéder à la conversation
 
 12. **Système d'inscription par rôle (Ajouté 2025-09-29)**
    - ✅ Sélection du rôle principal lors de l'inscription (Propriétaire/Locataire)

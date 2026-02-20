@@ -16,7 +16,7 @@ class ChatController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
+
         $conversations = Conversation::forUser($user)
             ->with([
                 'rental.vehicle',
@@ -36,7 +36,6 @@ class ChatController extends Controller
                 $conversation->unread_count = $conversation->unread_messages_count ?? 0;
                 return $conversation;
             });
-
         return Inertia::render('Chat/Index', [
             'conversations' => $conversations
         ]);
@@ -45,7 +44,7 @@ class ChatController extends Controller
     public function show(Conversation $conversation)
     {
         $user = Auth::user();
-        
+
         // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
@@ -82,7 +81,7 @@ class ChatController extends Controller
 
         $rental = Rental::with('vehicle.owner')->findOrFail($validated['rental_id']);
         $user = Auth::user();
-        
+
         // Check if user is participant in this rental
         abort_unless(
             $user->id === $rental->renter_id || $user->id === $rental->vehicle->owner_id,
@@ -115,7 +114,7 @@ class ChatController extends Controller
     public function sendMessage(Request $request, Conversation $conversation)
     {
         $user = Auth::user();
-        
+
         // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
@@ -142,7 +141,7 @@ class ChatController extends Controller
     public function getMessages(Conversation $conversation, Request $request)
     {
         $user = Auth::user();
-        
+
         // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
@@ -160,7 +159,7 @@ class ChatController extends Controller
     public function markAsRead(Conversation $conversation)
     {
         $user = Auth::user();
-        
+
         // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
@@ -172,7 +171,7 @@ class ChatController extends Controller
     public function getUnreadCount()
     {
         $user = Auth::user();
-        
+
         $unreadCount = Message::whereHas('conversation', function ($query) use ($user) {
                 $query->forUser($user);
             })
@@ -186,7 +185,7 @@ class ChatController extends Controller
     public function createForRental(Request $request, Rental $rental)
     {
         $user = Auth::user();
-        
+
         // Check if user is participant in this rental
         abort_unless(
             $user->id === $rental->renter_id || $user->id === $rental->vehicle->owner_id,
@@ -210,7 +209,7 @@ class ChatController extends Controller
     public function archive(Conversation $conversation)
     {
         $user = Auth::user();
-        
+
         // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
@@ -221,12 +220,17 @@ class ChatController extends Controller
 
     private function broadcastMessage(Conversation $conversation, Message $message)
     {
-        // Broadcast to conversation channel
-        broadcast(new \App\Events\MessageSent($conversation, $message))->toOthers();
-        
-        // Send notification to the other participant
-        $otherParticipant = $conversation->getOtherParticipant($message->sender);
-        $otherParticipant->notify(new NewMessageNotification($message, $conversation));
+        try {
+            // Broadcast to conversation channel
+            broadcast(new \App\Events\MessageSent($conversation, $message))->toOthers();
+
+            // Send notification to the other participant
+            $otherParticipant = $conversation->getOtherParticipant($message->sender);
+            $otherParticipant->notify(new NewMessageNotification($message, $conversation));
+        } catch (\Exception $e) {
+            // Log the error but don't break the request
+            \Illuminate\Support\Facades\Log::error('Broadcasting or notification failed: ' . $e->getMessage());
+        }
     }
 
     private function sendPushNotification(Conversation $conversation, Message $message)

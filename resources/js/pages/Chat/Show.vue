@@ -1,12 +1,24 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { ref, nextTick, onMounted, onUnmounted, computed, watch } from 'vue'
+import type { AppPageProps } from '@/types'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import axios from 'axios'
+
+// Configure axios for CSRF protection and AJAX detection
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+axios.defaults.headers.common['Accept'] = 'application/json'
+axios.defaults.headers.common['Content-Type'] = 'application/json'
+axios.defaults.withCredentials = true // Ensure cookies are sent with requests
+
+// Get page instance for accessing shared props
+const page = usePage<AppPageProps>()
 
 interface User {
     id: number
@@ -59,8 +71,11 @@ const messageInput = ref('')
 const messagesContainer = ref<HTMLElement>()
 const isLoading = ref(false)
 const localMessages = ref<Message[]>([...props.messages])
+const echoConnected = ref(false)
+const echoError = ref<string | null>(null)
 
-const currentUser = computed(() => (window as any).$page?.props?.auth?.user)
+// Get current authenticated user from Inertia page props
+const currentUser = computed(() => page.props.auth?.user)
 
 const scrollToBottom = () => {
     nextTick(() => {
@@ -78,28 +93,38 @@ const sendMessage = async () => {
     isLoading.value = true
 
     try {
-        const response = await fetch(route('api.chat.send-message', props.conversation.id), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-            body: JSON.stringify({
-                message: messageContent,
-                message_type: 'text'
-            })
+        const url = route('api.chat.send-message', props.conversation.id)
+        console.log('Sending message to URL:', url)
+
+        const response = await axios.post(url, {
+            message: messageContent,
+            message_type: 'text'
         })
 
-        if (response.ok) {
-            const data = await response.json()
-            // Message will be added via Echo broadcast
-        } else {
-            // Handle error
-            messageInput.value = messageContent
-            alert('Erreur lors de l\'envoi du message')
+        console.log('Message sent response:', response.data)
+
+        // Add message to UI immediately (optimistic update)
+        if (response.data && response.data.message) {
+            const newMessage = response.data.message
+
+            // Ensure the message has all required fields
+            if (!newMessage.sender) {
+                newMessage.sender = currentUser.value
+            }
+
+            // Add to messages array
+            localMessages.value = [...localMessages.value, newMessage]
+
+            // Scroll to bottom after a brief delay to ensure DOM is updated
+            nextTick(() => {
+                scrollToBottom()
+            })
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error sending message:', error)
+        if (axios.isAxiosError(error) && error.response) {
+            console.error('Error response:', error.response.data)
+        }
         messageInput.value = messageContent
         alert('Erreur lors de l\'envoi du message')
     } finally {
@@ -127,7 +152,41 @@ const formatMessageTime = (timestamp: string) => {
 }
 
 const isMessageFromCurrentUser = (message: Message) => {
-    return message.sender.id === currentUser.value?.id
+    if (!currentUser.value || !message.sender) {
+        console.warn('Missing user or sender data:', {
+            currentUser: currentUser.value,
+            sender: message.sender
+        })
+        return false
+    }
+
+    // Convert both IDs to numbers for comparison to handle type mismatches
+    const senderId = typeof message.sender.id === 'string'
+        ? parseInt(message.sender.id)
+        : message.sender.id
+    const currentUserId = typeof currentUser.value.id === 'string'
+        ? parseInt(currentUser.value.id)
+        : currentUser.value.id
+
+    const isCurrentUser = senderId === currentUserId
+
+    // Debug log for first few messages
+    if (localMessages.value.length < 5) {
+        console.log('Message sender check:', {
+            messageId: message.id,
+            senderId: message.sender.id,
+            senderIdType: typeof message.sender.id,
+            senderName: message.sender.name,
+            currentUserId: currentUser.value.id,
+            currentUserIdType: typeof currentUser.value.id,
+            currentUserName: currentUser.value.name,
+            convertedSenderId: senderId,
+            convertedCurrentUserId: currentUserId,
+            isCurrentUser
+        })
+    }
+
+    return isCurrentUser
 }
 
 const getRentalStatusLabel = (status: string) => {
@@ -152,34 +211,121 @@ const getRentalStatusColor = (status: string) => {
     return colors[status] || 'bg-gray-100 text-gray-800'
 }
 
+// Store channel reference for cleanup
+let conversationChannel: any = null
+
 // Real-time messaging setup
 onMounted(() => {
     scrollToBottom()
 
-    // Join private conversation channel
+    // Debug: Log current user
+    console.log('Current user:', currentUser.value)
+
+    if (!currentUser.value) {
+        console.error('Current user is not available! Check Inertia page props.')
+    }
+
+    // Mark messages as read when viewing the conversation
+    axios.post(route('api.chat.mark-read', props.conversation.id))
+        .catch((error: any) => console.error('Error marking messages as read:', error))
+
+    // Setup Echo subscription with a small delay to ensure Echo is connected
     const echo = (window as any).Echo
-    if (echo) {
-        echo.private(`conversation.${props.conversation.id}`)
-            .listen('.message.sent', (e: any) => {
-                // Add new message to local messages
-                localMessages.value.push(e.message)
-                scrollToBottom()
+    if (!echo) {
+        console.error('❌ Laravel Echo is not initialized. Real-time features will not work.')
+        echoError.value = 'Real-time messaging not available.'
+        return
+    }
+
+    // Wait for Pusher connection to be established
+    const setupEchoChannel = () => {
+        const connectionState = echo.connector.pusher.connection.state
+
+        console.log('Pusher connection state:', connectionState)
+
+        if (connectionState === 'connected') {
+            subscribeToChannel()
+        } else if (connectionState === 'connecting' || connectionState === 'initialized') {
+            // Wait for connection
+            console.log('Waiting for Pusher to connect...')
+            echo.connector.pusher.connection.bind('connected', () => {
+                console.log('Pusher connected, now subscribing to channel')
+                subscribeToChannel()
+            })
+        } else {
+            console.error('Pusher connection state:', connectionState)
+            echoError.value = 'Unable to establish real-time connection.'
+        }
+    }
+
+    const subscribeToChannel = () => {
+        console.log('Attempting to subscribe to conversation channel:', props.conversation.id)
+
+        try {
+            conversationChannel = echo.private(`conversation.${props.conversation.id}`)
+
+            // Listen for successful subscription
+            conversationChannel.subscribed(() => {
+                console.log('✅ Successfully subscribed to conversation channel')
+                echoConnected.value = true
+                echoError.value = null
             })
 
-        // Mark messages as read when viewing the conversation
-        fetch(route('api.chat.mark-read', props.conversation.id), {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            }
-        })
+            // Listen for subscription errors
+            conversationChannel.error((error: any) => {
+                console.error('❌ Echo subscription error:', error)
+                echoConnected.value = false
+
+                if (error && error.type === 'AuthError') {
+                    echoError.value = 'Authentication failed. Please refresh the page.'
+                    console.error('Broadcasting auth failed - 403 error. Check Laravel logs for details.')
+                } else {
+                    echoError.value = 'Unable to connect to real-time messaging.'
+                }
+            })
+
+            // Listen for incoming messages
+            conversationChannel.listen('.message.sent', (e: any) => {
+                console.log('📨 Received message via Echo:', e)
+
+                // Check if message already exists (prevent duplicates)
+                const messageExists = localMessages.value.some(m => m.id === e.message.id)
+                if (!messageExists) {
+                    const newMessage = e.message
+
+                    // Ensure the message has sender data
+                    if (!newMessage.sender) {
+                        console.warn('Message received without sender data:', newMessage)
+                    }
+
+                    // Add new message to local messages
+                    localMessages.value = [...localMessages.value, newMessage]
+                    nextTick(() => {
+                        scrollToBottom()
+                    })
+                } else {
+                    console.log('Message already exists, skipping duplicate')
+                }
+            })
+        } catch (error) {
+            console.error('Error setting up Echo channel:', error)
+            echoError.value = 'Failed to setup real-time messaging.'
+        }
     }
+
+    // Start the Echo setup process
+    setupEchoChannel()
 })
 
 onUnmounted(() => {
-    const echo = (window as any).Echo
-    if (echo) {
-        echo.leaveChannel(`conversation.${props.conversation.id}`)
+    // Properly leave the channel
+    if (conversationChannel) {
+        console.log('Leaving conversation channel:', props.conversation.id)
+        const echo = (window as any).Echo
+        if (echo) {
+            echo.leave(`conversation.${props.conversation.id}`)
+        }
+        conversationChannel = null
     }
 })
 
@@ -196,18 +342,36 @@ watch(localMessages, () => {
         <div class="h-screen flex flex-col">
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 px-6 py-4">
+                <!-- Connection Status Alert -->
+                <div v-if="echoError" class="max-w-6xl mx-auto mb-4">
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    {{ echoError }} Messages will not update in real-time.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="max-w-6xl mx-auto flex items-center justify-between">
                     <div class="flex items-center space-x-4">
-                        <Link 
+                        <Link
                             :href="route('chat.index')"
                             class="text-blue-600 hover:text-blue-800"
                         >
                             ← Retour
                         </Link>
-                        
+
                         <div class="flex items-center space-x-3">
                             <Avatar class="w-10 h-10">
-                                <AvatarImage 
+                                <AvatarImage
                                     :src="otherParticipant.avatar || ''"
                                     :alt="otherParticipant.name"
                                 />
@@ -230,7 +394,7 @@ watch(localMessages, () => {
                         <Badge :class="getRentalStatusColor(rental.status)">
                             {{ getRentalStatusLabel(rental.status) }}
                         </Badge>
-                        <Link 
+                        <Link
                             :href="route('rentals.show', rental.id)"
                             class="text-blue-600 hover:text-blue-800 text-sm font-medium"
                         >
@@ -246,12 +410,12 @@ watch(localMessages, () => {
                     <!-- Messages Area -->
                     <div class="flex-1 flex flex-col">
                         <!-- Messages List -->
-                        <div 
+                        <div
                             ref="messagesContainer"
                             class="flex-1 overflow-y-auto p-6 space-y-4"
                         >
-                            <div 
-                                v-for="message in localMessages" 
+                            <div
+                                v-for="message in localMessages"
                                 :key="message.id"
                                 class="flex"
                                 :class="{
@@ -261,15 +425,15 @@ watch(localMessages, () => {
                             >
                                 <div class="max-w-xs lg:max-w-md">
                                     <!-- System messages -->
-                                    <div 
+                                    <div
                                         v-if="message.message_type === 'system'"
                                         class="text-center text-sm text-gray-500 py-2"
                                     >
                                         {{ message.message }}
                                     </div>
-                                    
+
                                     <!-- Regular messages -->
-                                    <div 
+                                    <div
                                         v-else
                                         class="rounded-lg px-4 py-2 shadow-sm"
                                         :class="{
@@ -278,7 +442,7 @@ watch(localMessages, () => {
                                         }"
                                     >
                                         <p class="text-sm">{{ message.message }}</p>
-                                        <p 
+                                        <p
                                             class="text-xs mt-1"
                                             :class="{
                                                 'text-blue-100': isMessageFromCurrentUser(message),
@@ -345,7 +509,7 @@ watch(localMessages, () => {
                                     <div>
                                         <p class="text-sm font-medium text-gray-900">Période</p>
                                         <p class="text-sm text-gray-600">
-                                            {{ new Date(rental.start_date).toLocaleDateString('fr-FR') }} - 
+                                            {{ new Date(rental.start_date).toLocaleDateString('fr-FR') }} -
                                             {{ new Date(rental.end_date).toLocaleDateString('fr-FR') }}
                                         </p>
                                     </div>

@@ -208,4 +208,9 @@ class Vehicle extends Model
             ->having('distance', '<=', $radius)
             ->orderBy('distance');
     }
+
+    public function scopeForOwner($query, $ownerId)
+    {
+        return $query->where('owner_id', $ownerId);
+    }
 }

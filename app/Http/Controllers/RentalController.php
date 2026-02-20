@@ -112,7 +112,7 @@ class RentalController extends Controller
 
     public function show(Rental $rental)
     {
-        Gate::authorizee('view', $rental);
+        Gate::authorize('view', $rental);
 
         $rental->load(['vehicle.images', 'vehicle.owner', 'renter', 'reviews']);
 
@@ -124,7 +124,7 @@ class RentalController extends Controller
 
     public function confirm(Rental $rental)
     {
-        Gate::authorizee('confirm', $rental);
+        Gate::authorize('confirm', $rental);
 
         if ($rental->status !== 'pending') {
             return back()->withErrors(['status' => 'Cette réservation ne peut plus être confirmée.']);
@@ -137,7 +137,7 @@ class RentalController extends Controller
 
     public function cancel(Rental $rental)
     {
-        Gate::authorizee('cancel', $rental);
+        Gate::authorize('cancel', $rental);
 
         if (!in_array($rental->status, ['pending', 'confirmed'])) {
             return back()->withErrors(['status' => 'Cette réservation ne peut plus être annulée.']);
@@ -150,7 +150,7 @@ class RentalController extends Controller
 
     public function pickup(Request $request, Rental $rental)
     {
-        Gate::authorizee('pickup', $rental);
+        Gate::authorize('pickup', $rental);
 
         $validated = $request->validate([
             'pickup_mileage' => 'required|integer|min:0',
@@ -180,7 +180,7 @@ class RentalController extends Controller
 
     public function return(Request $request, Rental $rental)
     {
-        Gate::authorizee('return', $rental);
+        Gate::authorize('return', $rental);
 
         $validated = $request->validate([
             'return_mileage' => 'required|integer|min:' . $rental->pickup_mileage,
@@ -241,7 +241,7 @@ class RentalController extends Controller
 
     public function exportContract(Rental $rental, RentalContractService $contractService)
     {
-        Gate::authorizee('view', $rental);
+        Gate::authorize('view', $rental);
 
         // Only allow export for confirmed, active or completed rentals
         if (!in_array($rental->status, ['confirmed', 'active', 'completed'])) {

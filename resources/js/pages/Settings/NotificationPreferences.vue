@@ -1,12 +1,7 @@
 <template>
     <Head title="Notification Preferences" />
-    
-    <AuthenticatedLayout>
-        <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                Notification Preferences
-            </h2>
-        </template>
+
+    <AppLayout>
 
         <div class="py-12">
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
@@ -234,7 +229,7 @@
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </AppLayout>
 </template>
 
 <script setup lang="ts">
@@ -252,7 +247,7 @@ import {
     EnvelopeIcon,
     DevicePhoneMobileIcon
 } from '@heroicons/vue/24/outline'
-import AuthenticatedLayout from '../../layouts/AuthenticatedLayout.vue'
+import AppLayout from '../../layouts/AppLayout.vue'
 import GeoNotificationPermissions from '../../components/Notifications/GeoNotificationPermissions.vue'
 import GeoNotificationsList from '../../components/Notifications/GeoNotificationsList.vue'
 

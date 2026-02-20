@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Services\AIRecommendationService;
 use App\Models\Recommendation;
 use App\Models\RecommendationFeedback;
+use App\Models\Rental;
 use App\Models\SearchHistory;
 use App\Models\TrendingItem;
+use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -26,7 +28,7 @@ class AIRecommendationController extends Controller
     public function getPersonalizedRecommendations(Request $request)
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return response()->json([
                 'recommendations' => [],
@@ -106,7 +108,7 @@ class AIRecommendationController extends Controller
     public function trackActivity(Request $request)
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return response()->json(['success' => false]);
         }
@@ -167,7 +169,7 @@ class AIRecommendationController extends Controller
         ]);
 
         $search = SearchHistory::find($searchId);
-        
+
         if ($search && (!$search->user_id || $search->user_id === Auth::id())) {
             $search->markAsSuccessful($validated['item_type'], $validated['item_id']);
             return response()->json(['success' => true]);
@@ -265,15 +267,18 @@ class AIRecommendationController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        
+
         // Get user stats
         $stats = [
             'total_recommendations' => Recommendation::forUser($user->id)->count(),
             'viewed_recommendations' => Recommendation::forUser($user->id)->where('is_viewed', true)->count(),
             'conversions' => Recommendation::forUser($user->id)->where('is_converted', true)->count(),
             'recent_searches' => SearchHistory::forUser($user->id)->recent(7)->count(),
+            'totalVehicles' => Vehicle::forOwner($user->id)->count(),
+            'activeRentals' => Rental::forUser($user->id)->count()  ,
+            'totalEarnings' => Rental::forUser($user->id)->where('status', 'completed')->sum('total_price'),
+            'completedRentals' => Rental::forUser($user->id)->where('status', 'completed')->count(),
         ];
-
         // Get recent recommendations
         $recentRecommendations = Recommendation::forUser($user->id)
             ->active()
@@ -304,7 +309,7 @@ class AIRecommendationController extends Controller
                 ];
             });
 
-        return Inertia::render('AI/Dashboard', [
+        return Inertia::render('Dashboard', [
             'stats' => $stats,
             'recentRecommendations' => $recentRecommendations,
             'trending' => $trending,

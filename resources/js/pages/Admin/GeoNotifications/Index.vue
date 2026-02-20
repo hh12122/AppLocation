@@ -344,7 +344,7 @@ import {
     PencilIcon,
     TrashIcon,
 } from '@heroicons/vue/24/outline'
-import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '../../../layouts/AppLayout.vue'
 
 interface GeoNotification {
     id: number

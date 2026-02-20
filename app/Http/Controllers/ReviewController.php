@@ -32,7 +32,7 @@ class ReviewController extends Controller
 
     public function create(Rental $rental)
     {
-        Gate::authorizee('review', $rental);
+        Gate::authorize('review', $rental);
 
         $existingReview = Review::where('rental_id', $rental->id)
             ->where('reviewer_id', auth()->id())
@@ -57,7 +57,7 @@ class ReviewController extends Controller
 
     public function store(Request $request, Rental $rental)
     {
-        Gate::authorizee('review', $rental);
+        Gate::authorize('review', $rental);
 
         $existingReview = Review::where('rental_id', $rental->id)
             ->where('reviewer_id', auth()->id())
@@ -139,7 +139,7 @@ class ReviewController extends Controller
 
     public function edit(Review $review)
     {
-        Gate::authorizee('update', $review);
+        Gate::authorize('update', $review);
 
         $review->load(['rental.vehicle.owner', 'rental.renter']);
 
@@ -150,7 +150,7 @@ class ReviewController extends Controller
 
     public function update(Request $request, Review $review)
     {
-        Gate::authorizee('update', $review);
+        Gate::authorize('update', $review);
 
         $validated = $request->validate([
             'rating' => 'required|integer|min:1|max:5',
@@ -186,7 +186,7 @@ class ReviewController extends Controller
 
     public function destroy(Review $review)
     {
-        Gate::authorizee('delete', $review);
+        Gate::authorize('delete', $review);
 
         DB::transaction(function () use ($review) {
             $revieweeId = $review->reviewee_id;

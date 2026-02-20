@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building, Bike, Wrench, Ship, MapPin } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -14,6 +14,32 @@ const user = computed(() => page.props.auth?.user)
 const userRole = computed(() => user.value?.user_role || 'locataire')
 const isOwner = computed(() => userRole.value === 'proprietaire' || userRole.value === 'both')
 const isRenter = computed(() => userRole.value === 'locataire' || userRole.value === 'both')
+const unreadMessageCount = ref(0)
+
+const fetchUnreadCount = async () => {
+    try {
+        const response = await fetch(route('api.chat.unread-count'))
+        if (response.ok) {
+            const data = await response.json()
+            unreadMessageCount.value = data.unread_count
+        }
+    } catch (error) {
+        console.error('Error fetching unread count:', error)
+    }
+}
+
+onMounted(() => {
+    fetchUnreadCount()
+
+    // Set up real-time updates for unread count via Echo
+    const echo = (window as any).Echo
+    if (echo && user.value) {
+        echo.private(`App.Models.User.${user.value.id}`)
+            .notification(() => {
+                fetchUnreadCount()
+            })
+    }
+})
 
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -106,6 +132,8 @@ const mainNavItems = computed<NavItem[]>(() => {
             title: 'Messages',
             href: '/chat',
             icon: MessageSquare,
+            badge: unreadMessageCount.value > 0 ? unreadMessageCount.value : undefined,
+            badgeVariant: 'destructive',
         },
         {
             title: 'Mes favoris',

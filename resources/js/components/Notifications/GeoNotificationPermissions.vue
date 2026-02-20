@@ -1,5 +1,5 @@
 <template>
-    <div class="geo-notification-permissions">
+    <div class="max-w-2xl mx-auto">
         <!-- Permission Status Display -->
         <div class="permission-status mb-6">
             <h3 class="text-lg font-semibold mb-4">Location-Based Notifications</h3>
@@ -231,9 +231,3 @@ const enableAllPermissions = async () => {
     await requestAllPermissions()
 }
 </script>
-
-<style scoped>
-.geo-notification-permissions {
-    @apply max-w-2xl mx-auto;
-}
-</style>

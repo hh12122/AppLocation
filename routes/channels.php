@@ -20,14 +20,28 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 
 // Private channel for conversations
 Broadcast::channel('conversation.{conversationId}', function ($user, $conversationId) {
+    // Log authentication attempt for debugging
+    \Log::info('Broadcasting auth attempt', [
+        'user_id' => $user ? $user->id : null,
+        'conversation_id' => $conversationId,
+    ]);
+
     $conversation = Conversation::find($conversationId);
-    
+
     if (!$conversation) {
+        \Log::warning('Conversation not found', ['conversation_id' => $conversationId]);
         return false;
     }
-    
+
+    $isParticipant = $conversation->isParticipant($user);
+
+    \Log::info('Broadcasting auth result', [
+        'user_id' => $user->id,
+        'is_participant' => $isParticipant,
+    ]);
+
     // Only allow participants to join the conversation channel
-    return $conversation->isParticipant($user);
+    return $isParticipant;
 });
 
 // Presence channel for online status (optional)

@@ -75,6 +75,57 @@ const hasUnreadMessages = computed(() => {
 const totalUnreadCount = computed(() => {
     return props.conversations.reduce((sum, c) => sum + c.unread_count, 0)
 })
+
+// Current user for Echo channel
+const currentUser = computed(() => (window as any).page?.props?.auth?.user || page.props.auth.user)
+import { usePage } from '@inertiajs/vue3'
+import { onMounted, onUnmounted } from 'vue'
+
+const page = usePage()
+
+onMounted(() => {
+    if (currentUser.value) {
+        // Subscribe to user's private channel for notifications
+        (window as any).Echo.private(`App.Models.User.${currentUser.value.id}`)
+            .listen('.notification.new-message', (e: any) => {
+                console.log('New message notification received:', e)
+                
+                // Find potential existing conversation
+                const conversationIndex = props.conversations.findIndex(c => c.id === e.conversation_id)
+                
+                if (conversationIndex !== -1) {
+                    // Update existing conversation
+                    const conversation = props.conversations[conversationIndex]
+                    conversation.unread_count++
+                    conversation.last_message_at = new Date().toISOString()
+                    conversation.latest_message = [{
+                        id: e.message_id,
+                        message: e.message,
+                        created_at: new Date().toISOString(),
+                        sender: {
+                            id: e.sender_id,
+                            name: e.sender_name,
+                            avatar: e.sender_avatar
+                        }
+                    }]
+                    
+                    // Move to top
+                    const updatedConversation = props.conversations.splice(conversationIndex, 1)[0]
+                    props.conversations.unshift(updatedConversation)
+                } else {
+                    // For completely new conversations, we might want to reload or fetch
+                    // For now, let's just reload to get the new conversation
+                    router.reload({ only: ['conversations'] })
+                }
+            })
+    }
+})
+
+onUnmounted(() => {
+    if (currentUser.value) {
+        (window as any).Echo.leave(`App.Models.User.${currentUser.value.id}`)
+    }
+})
 </script>
 
 <template>

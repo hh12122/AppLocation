@@ -21,23 +21,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Broadcasting authentication routes
-Broadcast::routes(['middleware' => ['auth:sanctum']]);
-
-// Chat API routes
+// Geo-notification API routes
 Route::middleware(['auth'])->group(function () {
-    Route::prefix('chat')->group(function () {
-        Route::post('/send', [ChatController::class, 'store'])->name('api.chat.send');
-        Route::get('/conversations/{conversation}/messages', [ChatController::class, 'getMessages'])
-            ->name('api.chat.messages');
-        Route::post('/conversations/{conversation}/messages', [ChatController::class, 'sendMessage'])
-            ->name('api.chat.send-message');
-        Route::post('/conversations/{conversation}/mark-read', [ChatController::class, 'markAsRead'])
-            ->name('api.chat.mark-read');
-        Route::get('/unread-count', [ChatController::class, 'getUnreadCount'])
-            ->name('api.chat.unread-count');
-    });
-
     // Geo-notification API routes
     Route::prefix('geo-notifications')->group(function () {
         Route::post('/location', [GeoNotificationController::class, 'updateLocation'])

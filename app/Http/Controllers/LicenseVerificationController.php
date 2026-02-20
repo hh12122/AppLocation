@@ -81,7 +81,7 @@ class LicenseVerificationController extends Controller
 
     public function verify(Request $request, User $user)
     {
-        Gate::authorizee('admin');
+        Gate::authorize('admin');
 
         $request->validate([
             'status' => 'required|in:verified,rejected',

@@ -261,7 +261,7 @@ class ReferralController extends Controller
     // Admin methods
     public function adminIndex()
     {
-        Gate::authorizee('viewAny', Referral::class);
+        Gate::authorize('viewAny', Referral::class);
 
         $referrals = Referral::with(['referrer:id,name,email', 'referredUser:id,name,email'])
             ->latest()
@@ -282,7 +282,7 @@ class ReferralController extends Controller
 
     public function adminStats()
     {
-        Gate::authorizee('viewAny', Referral::class);
+        Gate::authorize('viewAny', Referral::class);
 
         $stats = [
             'referrals_by_month' => Referral::selectRaw('MONTH(created_at) as month, YEAR(created_at) as year, COUNT(*) as count')

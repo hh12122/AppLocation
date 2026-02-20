@@ -108,4 +108,17 @@ class Rental extends Model
     {
         return $this->end_date < now() && !in_array($this->status, ['completed', 'cancelled']);
     }
+
+    // Query Scopes
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where('renter_id', $userId);
+    }
+
+    public function scopeForOwner($query, $ownerId)
+    {
+        return $query->whereHas('vehicle', function ($q) use ($ownerId) {
+            $q->where('owner_id', $ownerId);
+        });
+    }
 }
