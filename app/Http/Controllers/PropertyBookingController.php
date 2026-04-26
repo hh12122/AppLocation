@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Property;
 use App\Models\PropertyBooking;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class PropertyBookingController extends Controller
 {
@@ -16,14 +16,14 @@ class PropertyBookingController extends Controller
      */
     public function create(Property $property, Request $request)
     {
-        if (!$property->is_available || $property->status !== 'active') {
+        if (! $property->is_available || $property->status !== 'active') {
             return redirect()->route('properties.show', $property)
                 ->with('error', 'Cette propriété n\'est pas disponible à la réservation.');
         }
 
         $checkinDate = $request->checkin ? Carbon::parse($request->checkin) : null;
         $checkoutDate = $request->checkout ? Carbon::parse($request->checkout) : null;
-        $guests = max(1, (int)$request->guests);
+        $guests = max(1, (int) $request->guests);
 
         // Validate dates if provided
         if ($checkinDate && $checkoutDate) {
@@ -37,7 +37,7 @@ class PropertyBookingController extends Controller
                     ->with('error', 'La date de départ doit être après la date d\'arrivée.');
             }
 
-            if (!$property->isAvailableForDates($checkinDate, $checkoutDate)) {
+            if (! $property->isAvailableForDates($checkinDate, $checkoutDate)) {
                 return redirect()->route('properties.show', $property)
                     ->with('error', 'Cette propriété n\'est pas disponible pour ces dates.');
             }
@@ -50,7 +50,7 @@ class PropertyBookingController extends Controller
             $query->orderBy('sort_order')->limit(3);
         }]);
 
-        return Inertia::render('Properties/Book', [
+        return Inertia::render('properties/Book', [
             'property' => $property,
             'initialData' => [
                 'checkin_date' => $checkinDate?->format('Y-m-d'),
@@ -71,7 +71,7 @@ class PropertyBookingController extends Controller
         $validated = $request->validate([
             'checkin_date' => 'required|date|after:today',
             'checkout_date' => 'required|date|after:checkin_date',
-            'guests_count' => 'required|integer|min:1|max:' . $property->max_guests,
+            'guests_count' => 'required|integer|min:1|max:'.$property->max_guests,
             'adults_count' => 'required|integer|min:1',
             'children_count' => 'nullable|integer|min:0',
             'infants_count' => 'nullable|integer|min:0',
@@ -84,7 +84,7 @@ class PropertyBookingController extends Controller
         $checkoutDate = Carbon::parse($validated['checkout_date']);
 
         // Verify property is still available
-        if (!$property->isAvailableForDates($checkinDate, $checkoutDate)) {
+        if (! $property->isAvailableForDates($checkinDate, $checkoutDate)) {
             return back()->withErrors(['dates' => 'Cette propriété n\'est plus disponible pour ces dates.']);
         }
 
@@ -150,7 +150,7 @@ class PropertyBookingController extends Controller
             'guest',
         ]);
 
-        return Inertia::render('Properties/BookingDetails', [
+        return Inertia::render('properties/BookingDetails', [
             'booking' => $booking,
             'isOwner' => $booking->property->owner_id === Auth::id(),
         ]);
@@ -165,7 +165,7 @@ class PropertyBookingController extends Controller
             abort(403, 'Unauthorized to confirm this booking');
         }
 
-        if (!$booking->canBeConfirmed()) {
+        if (! $booking->canBeConfirmed()) {
             return back()->with('error', 'Cette réservation ne peut plus être confirmée.');
         }
 
@@ -182,11 +182,11 @@ class PropertyBookingController extends Controller
         $isOwner = $booking->property->owner_id === Auth::id();
         $isGuest = $booking->guest_id === Auth::id();
 
-        if (!$isOwner && !$isGuest) {
+        if (! $isOwner && ! $isGuest) {
             abort(403, 'Unauthorized to cancel this booking');
         }
 
-        if (!$booking->canBeCancelled()) {
+        if (! $booking->canBeCancelled()) {
             return back()->with('error', 'Cette réservation ne peut plus être annulée.');
         }
 
@@ -203,7 +203,7 @@ class PropertyBookingController extends Controller
             $booking->update(['refund_amount' => $refundAmount]);
         }
 
-        $message = $isOwner 
+        $message = $isOwner
             ? 'Réservation annulée. Le voyageur sera notifié et remboursé si applicable.'
             : 'Réservation annulée. Vous serez remboursé selon la politique d\'annulation.';
 
@@ -219,7 +219,7 @@ class PropertyBookingController extends Controller
             abort(403, 'Unauthorized to check-in this booking');
         }
 
-        if (!$booking->canCheckIn()) {
+        if (! $booking->canCheckIn()) {
             return back()->with('error', 'L\'arrivée ne peut pas être effectuée pour cette réservation.');
         }
 
@@ -248,7 +248,7 @@ class PropertyBookingController extends Controller
             abort(403, 'Unauthorized to check-out this booking');
         }
 
-        if (!$booking->canCheckOut()) {
+        if (! $booking->canCheckOut()) {
             return back()->with('error', 'Le départ ne peut pas être effectué pour cette réservation.');
         }
 
@@ -285,7 +285,7 @@ class PropertyBookingController extends Controller
             ->paginate(10)
             ->appends($request->query());
 
-        return Inertia::render('Properties/MyBookings', [
+        return Inertia::render('properties/MyBookings', [
             'bookings' => $bookings,
             'stats' => [
                 'total' => Auth::user()->propertyBookings()->count(),
@@ -315,7 +315,7 @@ class PropertyBookingController extends Controller
 
         $properties = Auth::user()->properties()->select('id', 'title')->get();
 
-        return Inertia::render('Properties/PropertyBookings', [
+        return Inertia::render('properties/PropertyBookings', [
             'bookings' => $bookings,
             'properties' => $properties,
             'stats' => [

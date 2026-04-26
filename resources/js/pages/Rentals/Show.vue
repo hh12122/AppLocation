@@ -59,6 +59,16 @@ const props = defineProps<Props>()
 
 const confirmForm = useForm({})
 const cancelForm = useForm({})
+const pickupForm = useForm({
+    pickup_mileage: props.rental.vehicle.mileage || 0,
+    pickup_notes: '',
+    pickup_images: []
+})
+const returnForm = useForm({
+    return_mileage: props.rental.vehicle.mileage || 0,
+    return_notes: '',
+    return_images: []
+})
 
 const isOwner = computed(() => {
     return props.rental.vehicle.owner.id === (window as any).$page?.props?.auth?.user?.id
@@ -124,6 +134,22 @@ const cancelRental = () => {
     }
 }
 
+const submitPickup = () => {
+    pickupForm.post(route('rentals.pickup', props.rental.id), {
+        onSuccess: () => {
+            // Success handling
+        }
+    })
+}
+
+const submitReturn = () => {
+    returnForm.post(route('rentals.return', props.rental.id), {
+        onSuccess: () => {
+            // Success handling
+        }
+    })
+}
+
 const canConfirm = computed(() => {
     return isOwner.value && props.rental.status === 'pending'
 })
@@ -134,6 +160,14 @@ const canCancel = computed(() => {
 
 const canPay = computed(() => {
     return isRenter.value && props.rental.status === 'confirmed' && props.rental.payment_status !== 'paid'
+})
+
+const canPickup = computed(() => {
+    return isOwner.value && props.rental.status === 'confirmed'
+})
+
+const canReturn = computed(() => {
+    return isOwner.value && props.rental.status === 'active'
 })
 
 const getPaymentStatusLabel = (status: string): string => {
@@ -376,6 +410,58 @@ const getPaymentStatusColor = (status: string): string => {
                                     >
                                         💳 Payer maintenant ({{ formatPrice(rental.total_amount) }})
                                     </Button>
+
+                                    <!-- Pickup button for owner -->
+                                    <div v-if="canPickup" class="space-y-4 p-4 border rounded-lg bg-gray-50">
+                                        <h4 class="font-semibold">Enregistrer le départ</h4>
+                                        <div class="space-y-2">
+                                            <label class="text-sm">Kilométrage actuel</label>
+                                            <input 
+                                                v-model="pickupForm.pickup_mileage" 
+                                                type="number" 
+                                                class="w-full p-2 border rounded"
+                                            />
+                                            <label class="text-sm">Notes</label>
+                                            <textarea 
+                                                v-model="pickupForm.pickup_notes" 
+                                                class="w-full p-2 border rounded"
+                                                rows="2"
+                                            ></textarea>
+                                            <Button
+                                                @click="submitPickup"
+                                                :disabled="pickupForm.processing"
+                                                class="w-full bg-green-600 hover:bg-green-700"
+                                            >
+                                                {{ pickupForm.processing ? 'Enregistrement...' : 'Confirmer le départ' }}
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Return button for owner -->
+                                    <div v-if="canReturn" class="space-y-4 p-4 border rounded-lg bg-gray-50">
+                                        <h4 class="font-semibold">Enregistrer le retour</h4>
+                                        <div class="space-y-2">
+                                            <label class="text-sm">Nouveau kilométrage</label>
+                                            <input 
+                                                v-model="returnForm.return_mileage" 
+                                                type="number" 
+                                                class="w-full p-2 border rounded"
+                                            />
+                                            <label class="text-sm">Notes</label>
+                                            <textarea 
+                                                v-model="returnForm.return_notes" 
+                                                class="w-full p-2 border rounded"
+                                                rows="2"
+                                            ></textarea>
+                                            <Button
+                                                @click="submitReturn"
+                                                :disabled="returnForm.processing"
+                                                class="w-full bg-blue-600 hover:bg-blue-700"
+                                            >
+                                                {{ returnForm.processing ? 'Enregistrement...' : 'Confirmer le retour' }}
+                                            </Button>
+                                        </div>
+                                    </div>
 
                                     <!-- Cancel button -->
                                     <Button

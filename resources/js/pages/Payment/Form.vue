@@ -39,7 +39,7 @@
                 <div class="flex-shrink-0">
                   <div v-if="rental.vehicle.images && rental.vehicle.images.length > 0">
                     <img
-                      :src="rental.vehicle.images[0]"
+                      :src="getPrimaryImage()"
                       :alt="`${rental.vehicle.brand} ${rental.vehicle.model}`"
                       class="w-16 h-16 object-cover rounded-lg"
                     >
@@ -176,7 +176,10 @@ interface Props {
       model: string
       year: number
       fuel_type: string
-      images?: string[]
+      images: Array<{
+        image_path: string
+        is_primary: boolean
+      }>
       owner: {
         name: string
       }
@@ -193,7 +196,7 @@ interface Props {
   }
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const formatAmount = (amountInCents: number): string => {
   return new Intl.NumberFormat('fr-FR', {
@@ -212,5 +215,10 @@ const formatDateRange = (startDate: string, endDate: string): string => {
   }
   
   return `${start.toLocaleDateString('fr-FR', formatOptions)} - ${end.toLocaleDateString('fr-FR', formatOptions)}`
+}
+
+const getPrimaryImage = () => {
+  const primary = props.rental.vehicle.images.find(img => img.is_primary)
+  return primary ? `/storage/${primary.image_path}` : (props.rental.vehicle.images[0] ? `/storage/${props.rental.vehicle.images[0].image_path}` : '/images/car-placeholder.jpg')
 }
 </script>

@@ -200,6 +200,13 @@ const stats = {
                                         >
                                             Voir détails
                                         </Link>
+                                        <Link
+                                            v-if="rental.status === 'confirmed' && rental.payment_status !== 'paid'"
+                                            :href="route('payments.show', rental.id)"
+                                            class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-600 px-2 py-1 rounded"
+                                        >
+                                            💳 Payer
+                                        </Link>
                                         <a
                                             v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
                                             :href="route('rentals.contract', rental.id)"

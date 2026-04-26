@@ -1,20 +1,22 @@
 <template>
   <nav class="flex items-center justify-between">
     <div class="flex flex-1 justify-between sm:hidden">
-      <Link
+      <component
+        :is="prevUrl ? Link : 'span'"
         v-if="prevUrl"
         :href="prevUrl"
         class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
       >
         Précédent
-      </Link>
-      <Link
+      </component>
+      <component
+        :is="nextUrl ? Link : 'span'"
         v-if="nextUrl"
         :href="nextUrl"
         class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
       >
         Suivant
-      </Link>
+      </component>
     </div>
     <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
       <div>
@@ -30,22 +32,23 @@
       </div>
       <div>
         <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-          <Link
+          <component
+            :is="link.url ? Link : 'span'"
             v-for="link in links"
             :key="link.label"
-            :href="link.url"
+            :href="link.url || undefined"
             :class="[
               link.active
                 ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
                 : 'text-gray-900 dark:text-gray-100 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0',
               link.label.includes('Previous') ? 'rounded-l-md' : '',
               link.label.includes('Next') ? 'rounded-r-md' : '',
-              'relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20'
+              'relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20',
+              !link.url ? 'opacity-50 cursor-not-allowed' : ''
             ]"
-            :disabled="!link.url"
           >
             {{ getLabel(link.label) }}
-          </Link>
+          </component>
         </nav>
       </div>
     </div>

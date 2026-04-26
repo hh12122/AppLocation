@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class VehicleController extends Controller
 {
@@ -20,10 +20,10 @@ class VehicleController extends Controller
         // Basic Filters
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('brand', 'like', '%' . $search . '%')
-                  ->orWhere('model', 'like', '%' . $search . '%')
-                  ->orWhere('description', 'like', '%' . $search . '%');
+            $query->where(function ($q) use ($search) {
+                $q->where('brand', 'like', '%'.$search.'%')
+                    ->orWhere('model', 'like', '%'.$search.'%')
+                    ->orWhere('description', 'like', '%'.$search.'%');
             });
         }
 
@@ -36,11 +36,11 @@ class VehicleController extends Controller
         }
 
         if ($request->filled('fuel_type')) {
-            $query->whereIn('fuel_type', (array)$request->fuel_type);
+            $query->whereIn('fuel_type', (array) $request->fuel_type);
         }
 
         if ($request->filled('transmission')) {
-            $query->whereIn('transmission', (array)$request->transmission);
+            $query->whereIn('transmission', (array) $request->transmission);
         }
 
         // Range Filters
@@ -74,18 +74,18 @@ class VehicleController extends Controller
         }
 
         if ($request->filled('features')) {
-            $features = (array)$request->features;
+            $features = (array) $request->features;
             foreach ($features as $feature) {
                 $query->whereJsonContains('features', $feature);
             }
         }
 
         if ($request->filled('doors')) {
-            $query->whereIn('doors', (array)$request->doors);
+            $query->whereIn('doors', (array) $request->doors);
         }
 
         if ($request->filled('color')) {
-            $query->whereIn('color', (array)$request->color);
+            $query->whereIn('color', (array) $request->color);
         }
 
         if ($request->filled('vehicle_type')) {
@@ -165,17 +165,17 @@ class VehicleController extends Controller
                 ->toArray();
         }
 
-        return Inertia::render('Vehicles/Index', [
+        return Inertia::render('vehicles/Index', [
             'vehicles' => $vehicles,
             'filters' => $request->all(),
             'filterOptions' => $filterOptions,
-            'favoritedVehicleIds' => $favoritedVehicleIds
+            'favoritedVehicleIds' => $favoritedVehicleIds,
         ]);
     }
 
     public function create()
     {
-        return Inertia::render('Vehicles/Create');
+        return Inertia::render('vehicles/Create');
     }
 
     public function store(Request $request)
@@ -183,7 +183,7 @@ class VehicleController extends Controller
         $validated = $request->validate([
             'brand' => 'required|string|max:255',
             'model' => 'required|string|max:255',
-            'year' => 'required|integer|min:1950|max:' . (date('Y') + 1),
+            'year' => 'required|integer|min:1950|max:'.(date('Y') + 1),
             'color' => 'required|string|max:255',
             'license_plate' => 'required|string|max:255|unique:vehicles',
             'mileage' => 'required|integer|min:0',
@@ -200,7 +200,7 @@ class VehicleController extends Controller
             'city' => 'required|string|max:255',
             'postal_code' => 'required|string|max:20',
             'images' => 'required|array|min:1|max:10',
-            'images.*' => 'image|mimes:jpeg,png,jpg|max:2048'
+            'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $validated['owner_id'] = auth()->id();
@@ -215,7 +215,7 @@ class VehicleController extends Controller
                 $vehicle->images()->create([
                     'image_path' => $path,
                     'is_primary' => $index === 0,
-                    'sort_order' => $index
+                    'sort_order' => $index,
                 ]);
             }
         }
@@ -244,11 +244,11 @@ class VehicleController extends Controller
             $isFavorited = auth()->user()->hasFavorited($vehicle);
         }
 
-        return Inertia::render('Vehicles/Show', [
+        return Inertia::render('vehicles/Show', [
             'vehicle' => $vehicle,
             'bookings' => $bookings,
             'canRent' => auth()->check() && auth()->user()->canRent() && $vehicle->owner_id !== auth()->id(),
-            'isFavorited' => $isFavorited
+            'isFavorited' => $isFavorited,
         ]);
     }
 
@@ -258,8 +258,8 @@ class VehicleController extends Controller
 
         $vehicle->load('images');
 
-        return Inertia::render('Vehicles/Edit', [
-            'vehicle' => $vehicle
+        return Inertia::render('vehicles/Edit', [
+            'vehicle' => $vehicle,
         ]);
     }
 
@@ -270,9 +270,9 @@ class VehicleController extends Controller
         $validated = $request->validate([
             'brand' => 'required|string|max:255',
             'model' => 'required|string|max:255',
-            'year' => 'required|integer|min:1950|max:' . (date('Y') + 1),
+            'year' => 'required|integer|min:1950|max:'.(date('Y') + 1),
             'color' => 'required|string|max:255',
-            'license_plate' => 'required|string|max:255|unique:vehicles,license_plate,' . $vehicle->id,
+            'license_plate' => 'required|string|max:255|unique:vehicles,license_plate,'.$vehicle->id,
             'mileage' => 'required|integer|min:0',
             'fuel_type' => 'required|in:gasoline,diesel,electric,hybrid',
             'transmission' => 'required|in:manual,automatic',
@@ -287,7 +287,7 @@ class VehicleController extends Controller
             'city' => 'required|string|max:255',
             'postal_code' => 'required|string|max:20',
             'status' => 'required|in:active,inactive,maintenance',
-            'is_available' => 'boolean'
+            'is_available' => 'boolean',
         ]);
 
         $vehicle->update($validated);
@@ -324,8 +324,8 @@ class VehicleController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('Vehicles/MyVehicles', [
-            'vehicles' => $vehicles
+        return Inertia::render('vehicles/MyVehicles', [
+            'vehicles' => $vehicles,
         ]);
     }
 }

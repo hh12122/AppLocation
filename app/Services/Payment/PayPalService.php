@@ -4,14 +4,14 @@ namespace App\Services\Payment;
 
 use App\Models\Payment;
 use App\Models\Rental;
+use Illuminate\Support\Facades\Log;
 use PayPalCheckoutSdk\Core\PayPalHttpClient;
-use PayPalCheckoutSdk\Core\SandboxEnvironment;
 use PayPalCheckoutSdk\Core\ProductionEnvironment;
-use PayPalCheckoutSdk\Orders\OrdersCreateRequest;
+use PayPalCheckoutSdk\Core\SandboxEnvironment;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest;
+use PayPalCheckoutSdk\Orders\OrdersCreateRequest;
 use PayPalCheckoutSdk\Orders\OrdersGetRequest;
 use PayPalCheckoutSdk\Payments\CapturesRefundRequest;
-use Illuminate\Support\Facades\Log;
 
 class PayPalService
 {
@@ -20,7 +20,14 @@ class PayPalService
     public function __construct()
     {
         $mode = config('payment.paypal.mode', 'sandbox');
-        
+
+        // Workaround for local SSL issues (cURL error 60/77)
+        $caPath = base_path('cacert.pem');
+        if (file_exists($caPath)) {
+            ini_set('curl.cainfo', $caPath);
+            ini_set('openssl.cafile', $caPath);
+        }
+
         if ($mode === 'sandbox') {
             $environment = new SandboxEnvironment(
                 config('payment.paypal.sandbox.client_id'),
@@ -39,7 +46,7 @@ class PayPalService
     /**
      * Create a PayPal order for a rental
      */
-    public function createOrder(Rental $rental, int $amountInCents): array
+    public function createOrder(Rental $rental, int $amountInCents, array $extraData = []): array
     {
         try {
             // Calculate fees
@@ -50,14 +57,14 @@ class PayPalService
             // Convert cents to euros
             $amountInEuros = number_format($amountInCents / 100, 2, '.', '');
 
-            $request = new OrdersCreateRequest();
+            $request = new OrdersCreateRequest;
             $request->prefer('return=representation');
             $request->body = [
                 'intent' => 'CAPTURE',
                 'purchase_units' => [[
-                    'reference_id' => 'rental_' . $rental->id,
+                    'reference_id' => 'rental_'.$rental->id,
                     'description' => "Location de véhicule #{$rental->id}",
-                    'custom_id' => (string)$rental->id,
+                    'custom_id' => (string) $rental->id,
                     'amount' => [
                         'currency_code' => config('payment.currency', 'EUR'),
                         'value' => $amountInEuros,
@@ -96,10 +103,12 @@ class PayPalService
                 'user_id' => $rental->renter_id,
                 'payment_method' => 'paypal',
                 'status' => 'pending',
-                'amount' => $amountInCents,
+                'amount' => $extraData['original_amount'] ?? $amountInCents,
                 'platform_fee' => $platformFee,
                 'gateway_fee' => $gatewayFee,
                 'owner_payout' => $ownerPayout,
+                'referral_credits_used' => ($extraData['referral_credits_used'] ?? 0) * 100, // Store in cents
+                'final_amount' => $amountInCents,
                 'currency' => config('payment.currency', 'EUR'),
                 'paypal_order_id' => $response->result->id,
                 'payment_details' => [
@@ -125,8 +134,8 @@ class PayPalService
             ];
 
         } catch (\Exception $e) {
-            Log::error('PayPal order creation failed: ' . $e->getMessage());
-            
+            Log::error('PayPal order creation failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -142,13 +151,13 @@ class PayPalService
         try {
             $request = new OrdersCaptureRequest($orderId);
             $request->prefer('return=representation');
-            
+
             $response = $this->client->execute($request);
-            
+
             // Find and update payment record
             $payment = Payment::where('paypal_order_id', $orderId)->first();
-            
-            if (!$payment) {
+
+            if (! $payment) {
                 return [
                     'success' => false,
                     'error' => 'Payment record not found',
@@ -157,21 +166,22 @@ class PayPalService
 
             if ($response->result->status === 'COMPLETED') {
                 $captureId = $response->result->purchase_units[0]->payments->captures[0]->id ?? null;
-                
+
                 $payment->update([
                     'status' => 'completed',
                     'paypal_capture_id' => $captureId,
                     'paid_at' => now(),
                     'payment_details' => array_merge($payment->payment_details ?? [], [
                         'payer_email' => $response->result->payer->email_address ?? null,
-                        'payer_name' => $response->result->payer->name->given_name ?? '' . ' ' . $response->result->payer->name->surname ?? '',
+                        'payer_name' => $response->result->payer->name->given_name ?? ''.' '.$response->result->payer->name->surname ?? '',
                         'capture_status' => $response->result->status,
                     ]),
                 ]);
 
-                // Update rental payment status
+                // Update rental payment status and confirm rental
                 $payment->rental->update([
                     'payment_status' => 'paid',
+                    'status' => 'confirmed',
                 ]);
 
                 return [
@@ -188,8 +198,8 @@ class PayPalService
             ];
 
         } catch (\Exception $e) {
-            Log::error('PayPal order capture failed: ' . $e->getMessage());
-            
+            Log::error('PayPal order capture failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -212,8 +222,8 @@ class PayPalService
             ];
 
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve PayPal order details: ' . $e->getMessage());
-            
+            Log::error('Failed to retrieve PayPal order details: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -224,10 +234,10 @@ class PayPalService
     /**
      * Process a refund
      */
-    public function refund(Payment $payment, int $amountInCents = null): array
+    public function refund(Payment $payment, ?int $amountInCents = null): array
     {
         try {
-            if (!$payment->paypal_capture_id) {
+            if (! $payment->paypal_capture_id) {
                 return [
                     'success' => false,
                     'error' => 'No capture ID found for this payment',
@@ -279,8 +289,8 @@ class PayPalService
             ];
 
         } catch (\Exception $e) {
-            Log::error('PayPal refund failed: ' . $e->getMessage());
-            
+            Log::error('PayPal refund failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -296,7 +306,7 @@ class PayPalService
         try {
             // Update payment record
             $payment = Payment::where('paypal_order_id', $orderId)->first();
-            
+
             if ($payment) {
                 $payment->update([
                     'status' => 'cancelled',
@@ -310,8 +320,8 @@ class PayPalService
             ];
 
         } catch (\Exception $e) {
-            Log::error('PayPal order cancellation failed: ' . $e->getMessage());
-            
+            Log::error('PayPal order cancellation failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

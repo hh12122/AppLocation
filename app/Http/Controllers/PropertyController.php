@@ -4,12 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Property;
 use App\Models\PropertyImage;
-use App\Models\PropertyBooking;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class PropertyController extends Controller
 {
@@ -24,16 +22,16 @@ class PropertyController extends Controller
         $this->applyFilters($query, $request);
 
         $properties = $query->orderBy('is_featured', 'desc')
-                          ->orderBy('created_at', 'desc')
-                          ->paginate(12)
-                          ->appends($request->query());
+            ->orderBy('created_at', 'desc')
+            ->paginate(12)
+            ->appends($request->query());
 
-        return Inertia::render('Properties/Index', [
+        return Inertia::render('properties/Index', [
             'properties' => $properties,
             'filters' => $this->getFilterOptions(),
             'searchParams' => $request->only([
                 'search', 'city', 'property_type', 'room_type', 'min_guests',
-                'min_price', 'max_price', 'amenities', 'checkin', 'checkout'
+                'min_price', 'max_price', 'amenities', 'checkin', 'checkout',
             ]),
         ]);
     }
@@ -43,12 +41,12 @@ class PropertyController extends Controller
      */
     public function create()
     {
-        if (!Auth::user()?->canListProperties()) {
+        if (! Auth::user()?->canListProperties()) {
             return to_route('properties.index')
                 ->with('error', 'Vous devez avoir un permis vérifié pour lister une propriété.');
         }
 
-        return Inertia::render('Properties/Create');
+        return Inertia::render('properties/Create');
     }
 
     /**
@@ -56,7 +54,7 @@ class PropertyController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Auth::user()?->canListProperties()) {
+        if (! Auth::user()?->canListProperties()) {
             abort(403, 'Unauthorized to create properties');
         }
 
@@ -141,7 +139,7 @@ class PropertyController extends Controller
             ->limit(4)
             ->get();
 
-        return Inertia::render('Properties/Show', [
+        return Inertia::render('properties/Show', [
             'property' => $property,
             'similarProperties' => $similarProperties,
             'isFavorite' => Auth::check() ? Auth::user()->favoriteVehicles()->where('property_id', $property->id)->exists() : false,
@@ -161,7 +159,7 @@ class PropertyController extends Controller
             $query->orderBy('sort_order');
         }]);
 
-        return Inertia::render('Properties/Edit', [
+        return Inertia::render('properties/Edit', [
             'property' => $property,
         ]);
     }
@@ -273,7 +271,7 @@ class PropertyController extends Controller
             ->with(['primaryImage'])
             ->when($request->search, function ($query) use ($request) {
                 $query->where('title', 'like', "%{$request->search}%")
-                      ->orWhere('city', 'like', "%{$request->search}%");
+                    ->orWhere('city', 'like', "%{$request->search}%");
             })
             ->when($request->status, function ($query) use ($request) {
                 $query->where('status', $request->status);
@@ -282,7 +280,7 @@ class PropertyController extends Controller
             ->paginate(12)
             ->appends($request->query());
 
-        return Inertia::render('Properties/MyProperties', [
+        return Inertia::render('properties/MyProperties', [
             'properties' => $properties,
             'stats' => [
                 'total' => $user->properties()->count(),
@@ -302,8 +300,8 @@ class PropertyController extends Controller
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('title', 'like', "%{$request->search}%")
-                  ->orWhere('description', 'like', "%{$request->search}%")
-                  ->orWhere('city', 'like', "%{$request->search}%");
+                    ->orWhere('description', 'like', "%{$request->search}%")
+                    ->orWhere('city', 'like', "%{$request->search}%");
             });
         }
 
@@ -324,7 +322,7 @@ class PropertyController extends Controller
 
         // Minimum guests
         if ($request->min_guests) {
-            $query->minGuests((int)$request->min_guests);
+            $query->minGuests((int) $request->min_guests);
         }
 
         // Price range
@@ -341,11 +339,11 @@ class PropertyController extends Controller
         if ($request->checkin && $request->checkout) {
             $checkin = Carbon::parse($request->checkin);
             $checkout = Carbon::parse($request->checkout);
-            
+
             $query->whereDoesntHave('bookings', function ($q) use ($checkin, $checkout) {
                 $q->whereIn('status', ['confirmed', 'checked_in'])
-                  ->where('checkin_date', '<', $checkout)
-                  ->where('checkout_date', '>', $checkin);
+                    ->where('checkin_date', '<', $checkout)
+                    ->where('checkout_date', '>', $checkin);
             });
         }
 
@@ -421,12 +419,12 @@ class PropertyController extends Controller
         $sortOrder = $property->images()->count();
 
         foreach ($images as $image) {
-            $path = $image->store('properties/' . $property->id, 'public');
-            
+            $path = $image->store('properties/'.$property->id, 'public');
+
             PropertyImage::create([
                 'property_id' => $property->id,
                 'image_path' => $path,
-                'alt_text' => $property->title . ' - Image ' . ($sortOrder + 1),
+                'alt_text' => $property->title.' - Image '.($sortOrder + 1),
                 'sort_order' => $sortOrder,
                 'is_primary' => $sortOrder === 0,
             ]);

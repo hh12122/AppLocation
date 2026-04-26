@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Models\Rental;
-use App\Services\Payment\StripeService;
 use App\Services\Payment\PayPalService;
+use App\Services\Payment\StripeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +14,7 @@ use Inertia\Inertia;
 class PaymentController extends Controller
 {
     private StripeService $stripeService;
+
     private PayPalService $paypalService;
 
     public function __construct(
@@ -63,7 +64,7 @@ class PaymentController extends Controller
             'total_payments' => Payment::where('user_id', Auth::id())->count(),
         ];
 
-        return Inertia::render('Payment/Index', [
+        return Inertia::render('payment/Index', [
             'payments' => $payments,
             'stats' => $stats,
         ]);
@@ -85,9 +86,9 @@ class PaymentController extends Controller
         }
 
         $user = Auth::user();
-        
-        return Inertia::render('Payment/Form', [
-            'rental' => $rental->load('vehicle'),
+
+        return Inertia::render('payment/Form', [
+            'rental' => $rental->load(['vehicle.owner', 'vehicle.images', 'renter']),
             'availableCredits' => $user->getAvailableCredits(),
             'referralStats' => $user->getReferralStats(),
         ]);
@@ -132,7 +133,7 @@ class PaymentController extends Controller
             if ($request->referral_credits && $request->referral_credits > 0) {
                 $creditsToUse = min($request->referral_credits, $user->getAvailableCredits());
                 $creditsToUse = min($creditsToUse, $originalAmount / 100); // Convert cents to euros
-                
+
                 if ($creditsToUse > 0 && $user->canUseReferralCredits($creditsToUse)) {
                     $referralCreditsUsed = $creditsToUse;
                     $finalAmount = max(50, $originalAmount - ($creditsToUse * 100)); // Ensure minimum 50 cents
@@ -143,9 +144,12 @@ class PaymentController extends Controller
             if ($finalAmount <= 0) {
                 // Use all credits to cover the payment
                 if ($user->useReferralCredits($referralCreditsUsed, $rental)) {
-                    // Mark rental as paid
-                    $rental->update(['payment_status' => 'paid']);
-                    
+                    // Mark rental as paid and confirmed
+                    $rental->update([
+                        'payment_status' => 'paid',
+                        'status' => 'confirmed',
+                    ]);
+
                     // Create a payment record
                     $payment = Payment::create([
                         'rental_id' => $rental->id,
@@ -157,7 +161,7 @@ class PaymentController extends Controller
                         'status' => 'completed',
                         'paid_at' => now(),
                     ]);
-                    
+
                     return response()->json([
                         'success' => true,
                         'payment_covered_by_credits' => true,
@@ -181,8 +185,8 @@ class PaymentController extends Controller
             }
 
         } catch (\Exception $e) {
-            Log::error('Stripe payment intent creation failed: ' . $e->getMessage());
-            
+            Log::error('Stripe payment intent creation failed: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'error' => 'Erreur lors de la création du paiement. Veuillez réessayer.',
@@ -229,7 +233,7 @@ class PaymentController extends Controller
             if ($request->referral_credits && $request->referral_credits > 0) {
                 $creditsToUse = min($request->referral_credits, $user->getAvailableCredits());
                 $creditsToUse = min($creditsToUse, $originalAmount / 100); // Convert cents to euros
-                
+
                 if ($creditsToUse > 0 && $user->canUseReferralCredits($creditsToUse)) {
                     $referralCreditsUsed = $creditsToUse;
                     $finalAmount = max(50, $originalAmount - ($creditsToUse * 100)); // Ensure minimum 50 cents
@@ -240,9 +244,12 @@ class PaymentController extends Controller
             if ($finalAmount <= 0) {
                 // Use all credits to cover the payment
                 if ($user->useReferralCredits($referralCreditsUsed, $rental)) {
-                    // Mark rental as paid
-                    $rental->update(['payment_status' => 'paid']);
-                    
+                    // Mark rental as paid and confirmed
+                    $rental->update([
+                        'payment_status' => 'paid',
+                        'status' => 'confirmed',
+                    ]);
+
                     // Create a payment record
                     $payment = Payment::create([
                         'rental_id' => $rental->id,
@@ -254,7 +261,7 @@ class PaymentController extends Controller
                         'status' => 'completed',
                         'paid_at' => now(),
                     ]);
-                    
+
                     return response()->json([
                         'success' => true,
                         'payment_covered_by_credits' => true,
@@ -278,8 +285,8 @@ class PaymentController extends Controller
             }
 
         } catch (\Exception $e) {
-            Log::error('PayPal order creation failed: ' . $e->getMessage());
-            
+            Log::error('PayPal order creation failed: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'error' => 'Erreur lors de la création du paiement PayPal. Veuillez réessayer.',
@@ -298,7 +305,7 @@ class PaymentController extends Controller
         // Handle Stripe payment confirmation
         if ($request->has('payment_intent')) {
             $result = $this->stripeService->confirmPayment($request->payment_intent);
-            
+
             if ($result['success']) {
                 $payment = $result['payment'];
                 $rental = $payment->rental;
@@ -308,14 +315,14 @@ class PaymentController extends Controller
         // Handle PayPal payment confirmation
         if ($request->has('token') && $request->has('PayerID')) {
             $result = $this->paypalService->captureOrder($request->token);
-            
+
             if ($result['success']) {
                 $payment = $result['payment'];
                 $rental = $payment->rental;
             }
         }
 
-        return Inertia::render('Payment/Success', [
+        return Inertia::render('payment/Success', [
             'payment' => $payment,
             'rental' => $rental?->load('vehicle'),
         ]);
@@ -342,7 +349,7 @@ class PaymentController extends Controller
     {
         // Check if user is authorized (rental owner or admin)
         $user = Auth::user();
-        if (!$user->is_admin && $payment->rental->vehicle->owner_id !== $user->id) {
+        if (! $user->is_admin && $payment->rental->vehicle->owner_id !== $user->id) {
             abort(403, 'Unauthorized to refund this payment.');
         }
 
@@ -373,8 +380,8 @@ class PaymentController extends Controller
             ], 400);
 
         } catch (\Exception $e) {
-            Log::error('Payment refund failed: ' . $e->getMessage());
-            
+            Log::error('Payment refund failed: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'error' => 'Erreur lors du remboursement. Veuillez réessayer.',
@@ -414,13 +421,14 @@ class PaymentController extends Controller
                     break;
 
                 default:
-                    Log::info('Unhandled Stripe webhook event type: ' . $event->type);
+                    Log::info('Unhandled Stripe webhook event type: '.$event->type);
             }
 
             return response()->json(['status' => 'success']);
 
         } catch (\Exception $e) {
-            Log::error('Stripe webhook error: ' . $e->getMessage());
+            Log::error('Stripe webhook error: '.$e->getMessage());
+
             return response()->json(['error' => 'Webhook error'], 400);
         }
     }

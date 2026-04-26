@@ -12,7 +12,7 @@ return [
 
     'currency' => env('PAYMENT_CURRENCY', 'EUR'),
     'currency_symbol' => env('PAYMENT_CURRENCY_SYMBOL', '€'),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Stripe Configuration
@@ -20,7 +20,7 @@ return [
     */
     'stripe' => [
         'enabled' => env('STRIPE_ENABLED', true),
-        'public_key' => env('STRIPE_PUBLIC_KEY', ''),
+        'public_key' => env('STRIPE_PUBLISHABLE_KEY', ''),
         'secret_key' => env('STRIPE_SECRET_KEY', ''),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET', ''),
         'api_version' => '2024-12-18.acacia',

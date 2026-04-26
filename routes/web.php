@@ -162,9 +162,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 // Payment routes
 Route::middleware(['auth'])->group(function () {
     Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
-    Route::get('payments/{rental}', [PaymentController::class, 'show'])->name('payments.show');
     Route::get('payments/success', [PaymentController::class, 'success'])->name('payments.success');
     Route::get('payments/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
+    Route::get('payments/{rental}', [PaymentController::class, 'show'])->name('payments.show');
 
     // API routes for payment processing
     Route::post('api/payments/stripe/create-intent', [PaymentController::class, 'createStripeIntent'])

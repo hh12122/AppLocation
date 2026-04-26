@@ -4,11 +4,11 @@ namespace App\Services\Payment;
 
 use App\Models\Payment;
 use App\Models\Rental;
-use Stripe\Stripe;
+use Illuminate\Support\Facades\Log;
+use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
 use Stripe\Refund;
-use Stripe\Exception\ApiErrorException;
-use Illuminate\Support\Facades\Log;
+use Stripe\Stripe;
 
 class StripeService
 {
@@ -21,7 +21,7 @@ class StripeService
     /**
      * Create a payment intent for a rental
      */
-    public function createPaymentIntent(Rental $rental, int $amountInCents): array
+    public function createPaymentIntent(Rental $rental, int $amountInCents, array $extraData = []): array
     {
         try {
             // Calculate fees
@@ -34,14 +34,14 @@ class StripeService
                 'amount' => $amountInCents,
                 'currency' => strtolower(config('payment.currency', 'eur')),
                 'description' => "Location de véhicule #{$rental->id}",
-                'metadata' => [
+                'metadata' => array_merge([
                     'rental_id' => $rental->id,
                     'renter_id' => $rental->renter_id,
                     'vehicle_id' => $rental->vehicle_id,
                     'platform_fee' => $platformFee,
                     'gateway_fee' => $gatewayFee,
                     'owner_payout' => $ownerPayout,
-                ],
+                ], $extraData['metadata'] ?? []),
                 'automatic_payment_methods' => [
                     'enabled' => true,
                 ],
@@ -53,10 +53,12 @@ class StripeService
                 'user_id' => $rental->renter_id,
                 'payment_method' => 'stripe',
                 'status' => 'pending',
-                'amount' => $amountInCents,
+                'amount' => $extraData['original_amount'] ?? $amountInCents,
                 'platform_fee' => $platformFee,
                 'gateway_fee' => $gatewayFee,
                 'owner_payout' => $ownerPayout,
+                'referral_credits_used' => ($extraData['referral_credits_used'] ?? 0) * 100, // Store in cents
+                'final_amount' => $amountInCents,
                 'currency' => config('payment.currency', 'EUR'),
                 'stripe_payment_intent_id' => $paymentIntent->id,
                 'payment_details' => [
@@ -72,8 +74,8 @@ class StripeService
             ];
 
         } catch (ApiErrorException $e) {
-            Log::error('Stripe PaymentIntent creation failed: ' . $e->getMessage());
-            
+            Log::error('Stripe PaymentIntent creation failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -88,11 +90,11 @@ class StripeService
     {
         try {
             $paymentIntent = PaymentIntent::retrieve($paymentIntentId);
-            
+
             // Find and update payment record
             $payment = Payment::where('stripe_payment_intent_id', $paymentIntentId)->first();
-            
-            if (!$payment) {
+
+            if (! $payment) {
                 return [
                     'success' => false,
                     'error' => 'Payment record not found',
@@ -110,9 +112,10 @@ class StripeService
                     ]),
                 ]);
 
-                // Update rental payment status
+                // Update rental payment status and confirm rental
                 $payment->rental->update([
                     'payment_status' => 'paid',
+                    'status' => 'confirmed',
                 ]);
 
                 return [
@@ -128,8 +131,8 @@ class StripeService
             ];
 
         } catch (ApiErrorException $e) {
-            Log::error('Stripe payment confirmation failed: ' . $e->getMessage());
-            
+            Log::error('Stripe payment confirmation failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -161,8 +164,8 @@ class StripeService
             ];
 
         } catch (ApiErrorException $e) {
-            Log::error('Stripe payment cancellation failed: ' . $e->getMessage());
-            
+            Log::error('Stripe payment cancellation failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -173,10 +176,10 @@ class StripeService
     /**
      * Process a refund
      */
-    public function refund(Payment $payment, int $amountInCents = null): array
+    public function refund(Payment $payment, ?int $amountInCents = null): array
     {
         try {
-            if (!$payment->stripe_charge_id) {
+            if (! $payment->stripe_charge_id) {
                 return [
                     'success' => false,
                     'error' => 'No charge ID found for this payment',
@@ -225,8 +228,8 @@ class StripeService
             ];
 
         } catch (ApiErrorException $e) {
-            Log::error('Stripe refund failed: ' . $e->getMessage());
-            
+            Log::error('Stripe refund failed: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -251,8 +254,8 @@ class StripeService
             ];
 
         } catch (ApiErrorException $e) {
-            Log::error('Failed to retrieve payment details: ' . $e->getMessage());
-            
+            Log::error('Failed to retrieve payment details: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

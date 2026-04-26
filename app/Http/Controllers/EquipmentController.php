@@ -4,12 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipment;
 use App\Models\EquipmentImage;
-use App\Models\EquipmentBooking;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class EquipmentController extends Controller
 {
@@ -24,19 +22,19 @@ class EquipmentController extends Controller
         $this->applyFilters($query, $request);
 
         $equipment = $query->orderBy('is_featured', 'desc')
-                          ->orderBy('is_premium', 'desc')
-                          ->orderBy('created_at', 'desc')
-                          ->paginate(12)
-                          ->appends($request->query());
+            ->orderBy('is_premium', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(12)
+            ->appends($request->query());
 
-        return Inertia::render('Equipment/Index', [
+        return Inertia::render('equipment/Index', [
             'equipment' => $equipment,
             'categories' => Equipment::getCategoryConfig(),
             'filters' => $this->getFilterOptions(),
             'searchParams' => $request->only([
                 'search', 'category', 'subcategory', 'city', 'min_price', 'max_price',
                 'features', 'rental_unit', 'delivery_available', 'instant_booking',
-                'start_date', 'end_date'
+                'start_date', 'end_date',
             ]),
         ]);
     }
@@ -46,7 +44,7 @@ class EquipmentController extends Controller
      */
     public function category(string $category, Request $request)
     {
-        if (!array_key_exists($category, Equipment::getCategoryConfig())) {
+        if (! array_key_exists($category, Equipment::getCategoryConfig())) {
             abort(404);
         }
 
@@ -59,13 +57,13 @@ class EquipmentController extends Controller
         $this->applyFilters($query, $request);
 
         $equipment = $query->orderBy('is_featured', 'desc')
-                          ->orderBy('rating', 'desc')
-                          ->paginate(12)
-                          ->appends($request->query());
+            ->orderBy('rating', 'desc')
+            ->paginate(12)
+            ->appends($request->query());
 
         $categoryConfig = Equipment::getCategoryConfig()[$category];
 
-        return Inertia::render('Equipment/Category', [
+        return Inertia::render('equipment/Category', [
             'equipment' => $equipment,
             'category' => $category,
             'categoryConfig' => $categoryConfig,
@@ -73,7 +71,7 @@ class EquipmentController extends Controller
             'searchParams' => $request->only([
                 'search', 'subcategory', 'city', 'min_price', 'max_price',
                 'features', 'rental_unit', 'delivery_available', 'instant_booking',
-                'start_date', 'end_date'
+                'start_date', 'end_date',
             ]),
         ]);
     }
@@ -83,14 +81,14 @@ class EquipmentController extends Controller
      */
     public function create(Request $request)
     {
-        if (!Auth::user()?->canListEquipment()) {
+        if (! Auth::user()?->canListEquipment()) {
             return to_route('equipment.index')
                 ->with('error', 'Vous devez avoir un profil vérifié pour lister du matériel.');
         }
 
         $category = $request->get('category', 'sports_equipment');
 
-        return Inertia::render('Equipment/Create', [
+        return Inertia::render('equipment/Create', [
             'categories' => Equipment::getCategoryConfig(),
             'selectedCategory' => $category,
         ]);
@@ -101,7 +99,7 @@ class EquipmentController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Auth::user()?->canListEquipment()) {
+        if (! Auth::user()?->canListEquipment()) {
             abort(403, 'Unauthorized to create equipment');
         }
 
@@ -168,7 +166,7 @@ class EquipmentController extends Controller
         $categoryAttributes = $validated['category_attributes'] ?? [];
         unset($validated['category_attributes']);
 
-        $validated[$validated['category'] . '_attributes'] = $categoryAttributes;
+        $validated[$validated['category'].'_attributes'] = $categoryAttributes;
 
         $equipment = Equipment::create($validated);
 
@@ -204,7 +202,7 @@ class EquipmentController extends Controller
             ->limit(4)
             ->get();
 
-        return Inertia::render('Equipment/Show', [
+        return Inertia::render('equipment/Show', [
             'equipment' => $equipment,
             'categoryConfig' => Equipment::getCategoryConfig()[$equipment->category],
             'similarEquipment' => $similarEquipment,
@@ -229,7 +227,7 @@ class EquipmentController extends Controller
             $query->orderBy('sort_order');
         }]);
 
-        return Inertia::render('Equipment/Edit', [
+        return Inertia::render('equipment/Edit', [
             'equipment' => $equipment,
             'categories' => Equipment::getCategoryConfig(),
         ]);
@@ -306,7 +304,7 @@ class EquipmentController extends Controller
         if (isset($validated['category_attributes'])) {
             $categoryAttributes = $validated['category_attributes'];
             unset($validated['category_attributes']);
-            $validated[$equipment->category . '_attributes'] = $categoryAttributes;
+            $validated[$equipment->category.'_attributes'] = $categoryAttributes;
         }
 
         $equipment->update($validated);
@@ -359,7 +357,7 @@ class EquipmentController extends Controller
             ->with(['primaryImage'])
             ->when($request->search, function ($query) use ($request) {
                 $query->where('name', 'like', "%{$request->search}%")
-                      ->orWhere('city', 'like', "%{$request->search}%");
+                    ->orWhere('city', 'like', "%{$request->search}%");
             })
             ->when($request->category, function ($query) use ($request) {
                 $query->where('category', $request->category);
@@ -371,7 +369,7 @@ class EquipmentController extends Controller
             ->paginate(12)
             ->appends($request->query());
 
-        return Inertia::render('Equipment/MyEquipment', [
+        return Inertia::render('equipment/MyEquipment', [
             'equipment' => $equipment,
             'categories' => Equipment::getCategoryConfig(),
             'stats' => [
@@ -392,9 +390,9 @@ class EquipmentController extends Controller
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('description', 'like', "%{$request->search}%")
-                  ->orWhere('brand', 'like', "%{$request->search}%")
-                  ->orWhere('city', 'like', "%{$request->search}%");
+                    ->orWhere('description', 'like', "%{$request->search}%")
+                    ->orWhere('brand', 'like', "%{$request->search}%")
+                    ->orWhere('city', 'like', "%{$request->search}%");
             });
         }
 
@@ -446,8 +444,8 @@ class EquipmentController extends Controller
 
             $query->whereDoesntHave('bookings', function ($q) use ($startDate, $endDate) {
                 $q->whereIn('status', ['confirmed', 'preparing', 'ready', 'delivered', 'in_use'])
-                  ->where('start_datetime', '<', $endDate)
-                  ->where('end_datetime', '>', $startDate);
+                    ->where('start_datetime', '<', $endDate)
+                    ->where('end_datetime', '>', $startDate);
             });
         }
 
@@ -465,7 +463,7 @@ class EquipmentController extends Controller
     /**
      * Get filter options for the search form.
      */
-    private function getFilterOptions(string $category = null): array
+    private function getFilterOptions(?string $category = null): array
     {
         $baseOptions = [
             'rental_units' => [
@@ -508,12 +506,12 @@ class EquipmentController extends Controller
         $sortOrder = $equipment->images()->count();
 
         foreach ($images as $image) {
-            $path = $image->store('equipment/' . $equipment->id, 'public');
+            $path = $image->store('equipment/'.$equipment->id, 'public');
 
             EquipmentImage::create([
                 'equipment_id' => $equipment->id,
                 'image_path' => $path,
-                'alt_text' => $equipment->name . ' - Image ' . ($sortOrder + 1),
+                'alt_text' => $equipment->name.' - Image '.($sortOrder + 1),
                 'sort_order' => $sortOrder,
                 'is_primary' => $sortOrder === 0,
             ]);

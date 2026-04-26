@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Rental;
 use App\Models\Vehicle;
 use App\Services\RentalContractService;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
 
 class RentalController extends Controller
 {
@@ -32,9 +32,9 @@ class RentalController extends Controller
 
         $rentals = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return Inertia::render('Rentals/Index', [
+        return Inertia::render('rentals/Index', [
             'rentals' => $rentals,
-            'filters' => $request->only(['type', 'status'])
+            'filters' => $request->only(['type', 'status']),
         ]);
     }
 
@@ -42,8 +42,8 @@ class RentalController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->canRent()) {
-            if (!$user->driving_license_number || !$user->driving_license_expiry) {
+        if (! $user->canRent()) {
+            if (! $user->driving_license_number || ! $user->driving_license_expiry) {
                 return redirect()->route('license.verification')
                     ->with('warning', 'Vous devez fournir les informations de votre permis de conduire avant de pouvoir louer un véhicule.');
             }
@@ -58,14 +58,14 @@ class RentalController extends Controller
         }
 
         abort_if($vehicle->owner_id === auth()->id(), 403, 'Vous ne pouvez pas louer votre propre véhicule.');
-        abort_if(!$vehicle->is_available || $vehicle->status !== 'active', 403, 'Ce véhicule n\'est pas disponible.');
+        abort_if(! $vehicle->is_available || $vehicle->status !== 'active', 403, 'Ce véhicule n\'est pas disponible.');
 
         $vehicle->load(['images', 'owner']);
 
-        return Inertia::render('Rentals/Create', [
+        return Inertia::render('rentals/Create', [
             'vehicle' => $vehicle,
             'startDate' => $request->get('start_date'),
-            'endDate' => $request->get('end_date')
+            'endDate' => $request->get('end_date'),
         ]);
     }
 
@@ -75,18 +75,18 @@ class RentalController extends Controller
             'vehicle_id' => 'required|exists:vehicles,id',
             'start_date' => 'required|date|after:today',
             'end_date' => 'required|date|after:start_date',
-            'special_requests' => 'nullable|string|max:1000'
+            'special_requests' => 'nullable|string|max:1000',
         ]);
 
         $vehicle = Vehicle::findOrFail($validated['vehicle_id']);
 
-        abort_if(!auth()->user()->canRent(), 403);
+        abort_if(! auth()->user()->canRent(), 403);
         abort_if($vehicle->owner_id === auth()->id(), 403);
 
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
 
-        if (!$vehicle->isAvailableForPeriod($startDate, $endDate)) {
+        if (! $vehicle->isAvailableForPeriod($startDate, $endDate)) {
             return back()->withErrors(['dates' => 'Le véhicule n\'est pas disponible pour ces dates.']);
         }
 
@@ -103,7 +103,7 @@ class RentalController extends Controller
             'daily_rate' => $vehicle->daily_rate,
             'total_days' => $totalDays,
             'deposit' => $totalAmount * 0.2, // 20% deposit
-            'special_requests' => $validated['special_requests']
+            'special_requests' => $validated['special_requests'],
         ]);
 
         return redirect()->route('rentals.show', $rental)
@@ -116,9 +116,9 @@ class RentalController extends Controller
 
         $rental->load(['vehicle.images', 'vehicle.owner', 'renter', 'reviews']);
 
-        return Inertia::render('Rentals/Show', [
+        return Inertia::render('rentals/Show', [
             'rental' => $rental,
-            'canReview' => $rental->canBeReviewed() && !$rental->reviews()->where('reviewer_id', auth()->id())->exists()
+            'canReview' => $rental->canBeReviewed() && ! $rental->reviews()->where('reviewer_id', auth()->id())->exists(),
         ]);
     }
 
@@ -139,7 +139,7 @@ class RentalController extends Controller
     {
         Gate::authorize('cancel', $rental);
 
-        if (!in_array($rental->status, ['pending', 'confirmed'])) {
+        if (! in_array($rental->status, ['pending', 'confirmed'])) {
             return back()->withErrors(['status' => 'Cette réservation ne peut plus être annulée.']);
         }
 
@@ -156,7 +156,7 @@ class RentalController extends Controller
             'pickup_mileage' => 'required|integer|min:0',
             'pickup_notes' => 'nullable|string|max:1000',
             'pickup_images' => 'nullable|array|max:5',
-            'pickup_images.*' => 'image|mimes:jpeg,png,jpg|max:2048'
+            'pickup_images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $pickupImages = [];
@@ -172,7 +172,7 @@ class RentalController extends Controller
             'pickup_datetime' => now(),
             'pickup_mileage' => $validated['pickup_mileage'],
             'pickup_notes' => $validated['pickup_notes'],
-            'pickup_images' => $pickupImages
+            'pickup_images' => $pickupImages,
         ]);
 
         return back()->with('success', 'Remise du véhicule enregistrée avec succès !');
@@ -183,10 +183,10 @@ class RentalController extends Controller
         Gate::authorize('return', $rental);
 
         $validated = $request->validate([
-            'return_mileage' => 'required|integer|min:' . $rental->pickup_mileage,
+            'return_mileage' => 'required|integer|min:'.$rental->pickup_mileage,
             'return_notes' => 'nullable|string|max:1000',
             'return_images' => 'nullable|array|max:5',
-            'return_images.*' => 'image|mimes:jpeg,png,jpg|max:2048'
+            'return_images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $returnImages = [];
@@ -202,12 +202,12 @@ class RentalController extends Controller
             'return_datetime' => now(),
             'return_mileage' => $validated['return_mileage'],
             'return_notes' => $validated['return_notes'],
-            'return_images' => $returnImages
+            'return_images' => $returnImages,
         ]);
 
         // Update vehicle mileage
         $rental->vehicle->update([
-            'mileage' => $validated['return_mileage']
+            'mileage' => $validated['return_mileage'],
         ]);
 
         return back()->with('success', 'Retour du véhicule enregistré avec succès !');
@@ -220,22 +220,22 @@ class RentalController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('Rentals/MyRentals', [
-            'rentals' => $rentals
+        return Inertia::render('rentals/MyRentals', [
+            'rentals' => $rentals,
         ]);
     }
 
     public function myBookings()
     {
         $rentals = Rental::whereHas('vehicle', function ($query) {
-                $query->where('owner_id', auth()->id());
-            })
-            ->with(['vehicle.images', 'renter'])
+            $query->where('owner_id', auth()->id());
+        })
+            ->with(['vehicle.images', 'vehicle.owner', 'renter'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('Rentals/MyBookings', [
-            'rentals' => $rentals
+        return Inertia::render('rentals/MyBookings', [
+            'rentals' => $rentals,
         ]);
     }
 
@@ -244,7 +244,7 @@ class RentalController extends Controller
         Gate::authorize('view', $rental);
 
         // Only allow export for confirmed, active or completed rentals
-        if (!in_array($rental->status, ['confirmed', 'active', 'completed'])) {
+        if (! in_array($rental->status, ['confirmed', 'active', 'completed'])) {
             abort(403, 'Le contrat ne peut être exporté que pour les locations confirmées, actives ou complétées.');
         }
 

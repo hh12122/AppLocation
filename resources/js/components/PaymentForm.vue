@@ -197,7 +197,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 interface Props {
@@ -228,6 +228,7 @@ const stripe = ref<any>(null)
 const cardElement = ref<any>(null)
 const useReferralCredits = ref(false)
 const referralCreditsToUse = ref(0)
+const stripeLoaded = ref(false)
 
 // Calculate fees based on selected payment method
 const baseAmount = computed(() => props.rental.total_amount * 100) // Convert to cents
@@ -287,7 +288,9 @@ const initializeStripe = async () => {
       },
     })
     
-    cardElement.value.mount('#stripe-card-element')
+    // Do not mount here, we mount in the watcher when the element is visible
+    // cardElement.value.mount('#stripe-card-element')
+    
     
     cardElement.value.on('change', (event: any) => {
       const displayError = document.getElementById('card-errors')
@@ -299,6 +302,16 @@ const initializeStripe = async () => {
     })
   }
 }
+
+watch(selectedMethod, async (newMethod) => {
+  if (newMethod === 'stripe') {
+    await nextTick()
+    if (!cardElement.value) {
+      await initializeStripe()
+    }
+    cardElement.value.mount('#stripe-card-element')
+  }
+})
 
 const processPayment = async () => {
   processing.value = true

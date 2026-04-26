@@ -6,7 +6,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, ref, onMounted } from 'vue';
-import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building, Bike, Wrench, Ship, MapPin } from 'lucide-vue-next';
+import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building, Bike, Wrench, Ship, MapPin, ClipboardList } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage()
@@ -101,6 +101,21 @@ const mainNavItems = computed<NavItem[]>(() => {
                 title: 'Mon matériel',
                 href: '/my-equipment',
                 icon: Wrench,
+            },
+            {
+                title: 'Demandes véhicules',
+                href: '/my-bookings',
+                icon: ClipboardList,
+            },
+            {
+                title: 'Demandes propriétés',
+                href: '/property-bookings-management',
+                icon: ClipboardList,
+            },
+            {
+                title: 'Demandes matériel',
+                href: '/equipment-bookings-management',
+                icon: ClipboardList,
             }
         )
     }
@@ -188,6 +203,7 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
+            <div class="px-4 py-2 text-xs text-muted-foreground">Role: {{ userRole }}</div>
             <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
