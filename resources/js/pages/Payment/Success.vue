@@ -66,19 +66,52 @@
               </div>
             </div>
 
+            <!-- Property Booking Details -->
+            <div v-if="booking" class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 mb-6 text-left">
+              <h3 class="font-medium text-gray-900 dark:text-gray-100 mb-2">Détails de la réservation</h3>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Propriété :</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ booking.property.title }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Dates :</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">
+                    {{ formatDate(booking.checkin_date) }} - {{ formatDate(booking.checkout_date) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-3">
               <Link
-                :href="`/rentals/${rental?.id}`"
+                v-if="rental"
+                :href="`/rentals/${rental.id}`"
                 class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center"
               >
                 Voir la location
               </Link>
               <Link
+                v-if="booking"
+                :href="`/property-bookings/${booking.id}`"
+                class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center"
+              >
+                Voir la réservation
+              </Link>
+              <Link
+                v-if="rental"
                 href="/my-rentals"
                 class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center"
               >
                 Mes locations
+              </Link>
+              <Link
+                v-if="booking"
+                href="/my-property-bookings"
+                class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center"
+              >
+                Mes réservations
               </Link>
             </div>
           </div>
@@ -119,6 +152,15 @@ interface Props {
     vehicle: {
       brand: string
       model: string
+    }
+  }
+  booking?: {
+    id: number
+    status: string
+    checkin_date: string
+    checkout_date: string
+    property: {
+      title: string
     }
   }
 }

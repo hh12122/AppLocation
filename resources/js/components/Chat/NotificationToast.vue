@@ -63,9 +63,7 @@ const truncatedMessage = computed(() => {
                                 {{ notification.sender_name }}
                             </p>
                             <p class="text-xs text-gray-600">
-                                {{ notification.rental_info.vehicle.year }} 
-                                {{ notification.rental_info.vehicle.brand }} 
-                                {{ notification.rental_info.vehicle.model }}
+                                {{ notification.booking_summary?.title || notification.booking_summary?.label || '' }}
                             </p>
                         </div>
                         <Button

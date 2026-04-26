@@ -75,7 +75,7 @@ class Rental extends Model
 
     public function conversation()
     {
-        return $this->hasOne(Conversation::class);
+        return $this->morphOne(Conversation::class, 'conversable');
     }
 
     // Helpers
@@ -106,7 +106,7 @@ class Rental extends Model
 
     public function isPastDue(): bool
     {
-        return $this->end_date < now() && !in_array($this->status, ['completed', 'cancelled']);
+        return $this->end_date < now() && ! in_array($this->status, ['completed', 'cancelled']);
     }
 
     // Query Scopes

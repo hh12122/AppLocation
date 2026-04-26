@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class PropertyBooking extends Model
 {
@@ -102,9 +102,14 @@ class PropertyBooking extends Model
     /**
      * Get payments for this booking.
      */
-    public function payments(): HasMany
+    public function payments(): MorphMany
     {
-        return $this->hasMany(Payment::class, 'rental_id'); // Reusing existing payment system
+        return $this->morphMany(Payment::class, 'payable');
+    }
+
+    public function conversation()
+    {
+        return $this->morphOne(Conversation::class, 'conversable');
     }
 
     /**
@@ -158,7 +163,7 @@ class PropertyBooking extends Model
      */
     public function canBeCancelled(): bool
     {
-        return in_array($this->status, ['pending', 'confirmed']) && 
+        return in_array($this->status, ['pending', 'confirmed']) &&
                $this->checkin_date > now()->addDays(1);
     }
 
@@ -167,7 +172,7 @@ class PropertyBooking extends Model
      */
     public function canBeConfirmed(): bool
     {
-        return $this->status === 'pending' && 
+        return $this->status === 'pending' &&
                $this->expires_at > now();
     }
 
@@ -176,8 +181,8 @@ class PropertyBooking extends Model
      */
     public function canCheckIn(): bool
     {
-        return $this->status === 'confirmed' && 
-               $this->checkin_date <= now()->toDateString() &&
+        return $this->status === 'confirmed' &&
+               $this->checkin_date->lte(now()->startOfDay()) &&
                $this->payment_status === 'paid';
     }
 
@@ -194,9 +199,9 @@ class PropertyBooking extends Model
      */
     public function canBeReviewed(): bool
     {
-        return $this->status === 'completed' && 
+        return $this->status === 'completed' &&
                $this->review_deadline > now() &&
-               !$this->guest_reviewed;
+               ! $this->guest_reviewed;
     }
 
     /**
@@ -275,7 +280,7 @@ class PropertyBooking extends Model
     public function calculateRefund(): float
     {
         $daysUntilCheckin = now()->diffInDays($this->checkin_date, false);
-        
+
         // Basic cancellation policy
         if ($daysUntilCheckin >= 7) {
             return $this->total_amount; // Full refund
@@ -291,7 +296,7 @@ class PropertyBooking extends Model
      */
     public function getReferenceAttribute(): string
     {
-        return 'PB' . str_pad($this->id, 6, '0', STR_PAD_LEFT);
+        return 'PB'.str_pad($this->id, 6, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -332,7 +337,7 @@ class PropertyBooking extends Model
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('checkin_date', '>', now()->toDateString())
-                    ->whereIn('status', ['confirmed']);
+            ->whereIn('status', ['confirmed']);
     }
 
     /**
@@ -341,8 +346,8 @@ class PropertyBooking extends Model
     public function scopeCurrent(Builder $query): Builder
     {
         return $query->where('checkin_date', '<=', now()->toDateString())
-                    ->where('checkout_date', '>=', now()->toDateString())
-                    ->whereIn('status', ['checked_in']);
+            ->where('checkout_date', '>=', now()->toDateString())
+            ->whereIn('status', ['checked_in']);
     }
 
     /**

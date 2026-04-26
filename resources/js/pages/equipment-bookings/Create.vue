@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
@@ -52,32 +52,34 @@ interface Equipment {
 
 interface Props {
   equipment: Equipment;
+  categoryConfig?: { subcategories: Record<string, string> } | null;
   licenseRequired?: boolean;
 }
 
 const props = defineProps<Props>();
 
 const form = useForm({
-  start_date: '',
-  end_date: '',
-  pickup_location: '',
+  start_datetime: '',
+  end_datetime: '',
+  duration_unit: props.equipment.rental_unit,
+  pickup_address: '',
+  delivery_address: '',
   special_requests: '',
-  quantity: 1,
-  rental_unit: props.equipment.rental_unit,
+  usage_purpose: '',
 });
 
 // Computed properties
 const availableUnits = computed(() => {
   const units = [];
-  if (props.equipment.hourly_rate) units.push({ value: 'hour', label: 'À l\'heure', rate: props.equipment.hourly_rate });
-  if (props.equipment.daily_rate) units.push({ value: 'day', label: 'À la journée', rate: props.equipment.daily_rate });
-  if (props.equipment.weekly_rate) units.push({ value: 'week', label: 'À la semaine', rate: props.equipment.weekly_rate });
-  if (props.equipment.monthly_rate) units.push({ value: 'month', label: 'Au mois', rate: props.equipment.monthly_rate });
+  if (props.equipment.hourly_rate != null) units.push({ value: 'hour', label: 'À l\'heure', rate: props.equipment.hourly_rate });
+  if (props.equipment.daily_rate != null) units.push({ value: 'day', label: 'À la journée', rate: props.equipment.daily_rate });
+  if (props.equipment.weekly_rate != null) units.push({ value: 'week', label: 'À la semaine', rate: props.equipment.weekly_rate });
+  if (props.equipment.monthly_rate != null) units.push({ value: 'month', label: 'Au mois', rate: props.equipment.monthly_rate });
   return units;
 });
 
 const selectedUnit = computed(() => {
-  return availableUnits.value.find(unit => unit.value === form.rental_unit);
+  return availableUnits.value.find(unit => unit.value === form.duration_unit);
 });
 
 const estimatedDuration = ref(0);
@@ -85,43 +87,42 @@ const estimatedPrice = ref(0);
 
 // Calculate pricing when dates or quantity change
 const calculatePricing = () => {
-  if (!form.start_date || !form.end_date || !selectedUnit.value) {
+  if (!form.start_datetime || !form.end_datetime || !selectedUnit.value) {
     estimatedDuration.value = 0;
     estimatedPrice.value = 0;
     return;
   }
 
-  const startDate = new Date(form.start_date);
-  const endDate = new Date(form.end_date);
+  const startDate = new Date(form.start_datetime);
+  const endDate = new Date(form.end_datetime);
   const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-  
+
   let duration = 0;
-  switch (form.rental_unit) {
+  switch (form.duration_unit) {
     case 'hour':
-      duration = Math.ceil(diffTime / (1000 * 60 * 60)); // hours
+      duration = Math.ceil(diffTime / (1000 * 60 * 60));
       break;
     case 'day':
-      duration = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // days
+      duration = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
       break;
     case 'week':
-      duration = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7))); // weeks
+      duration = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7)));
       break;
     case 'month':
-      duration = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30))); // approximate months
+      duration = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30)));
       break;
   }
 
   estimatedDuration.value = duration;
-  
-  const basePrice = selectedUnit.value.rate * duration * form.quantity;
-  
-  // Apply discount for longer durations
+
+  const basePrice = selectedUnit.value.rate * duration;
+
   let discountPercent = 0;
-  if (form.rental_unit === 'day' && duration >= 7) discountPercent = 10;
-  else if (form.rental_unit === 'day' && duration >= 3) discountPercent = 5;
-  else if (form.rental_unit === 'week' && duration >= 4) discountPercent = 15;
-  else if (form.rental_unit === 'week' && duration >= 2) discountPercent = 8;
-  else if (form.rental_unit === 'month' && duration >= 3) discountPercent = 20;
+  if (form.duration_unit === 'day' && duration >= 7) discountPercent = 10;
+  else if (form.duration_unit === 'day' && duration >= 3) discountPercent = 5;
+  else if (form.duration_unit === 'week' && duration >= 4) discountPercent = 15;
+  else if (form.duration_unit === 'week' && duration >= 2) discountPercent = 8;
+  else if (form.duration_unit === 'month' && duration >= 3) discountPercent = 20;
   
   const discountAmount = basePrice * (discountPercent / 100);
   const finalPrice = basePrice - discountAmount;
@@ -181,7 +182,7 @@ const getRentalUnitLabel = (unit: string) => {
         <Shield class="h-4 w-4 text-orange-500" />
         <AlertDescription class="text-orange-700">
           Un permis de conduire vérifié est requis pour louer ce matériel. 
-          <a href="/license-verification" class="underline font-medium">Vérifiez votre permis</a> 
+          <Link :href="route('license.verification')" class="underline font-medium">Vérifiez votre permis</Link>
           avant de continuer.
         </AlertDescription>
       </Alert>
@@ -209,7 +210,7 @@ const getRentalUnitLabel = (unit: string) => {
                     <h3 class="font-semibold text-lg">{{ equipment.name }}</h3>
                     <p class="text-gray-600 mb-2">{{ equipment.city }}</p>
                     <div class="flex items-center gap-2">
-                      <Badge>{{ equipment.subcategory }}</Badge>
+                      <Badge>{{ categoryConfig?.subcategories[equipment.subcategory] || equipment.subcategory }}</Badge>
                       <Badge v-if="equipment.delivery_available" variant="secondary">
                         Livraison disponible
                       </Badge>
@@ -230,79 +231,60 @@ const getRentalUnitLabel = (unit: string) => {
               <CardContent class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label for="start_date">Date de début *</Label>
+                    <Label for="start_datetime">Date de début *</Label>
                     <Input
-                      id="start_date"
-                      v-model="form.start_date"
+                      id="start_datetime"
+                      v-model="form.start_datetime"
                       type="datetime-local"
                       :min="today"
                       required
                       class="mt-1"
-                      :class="{ 'border-red-500': form.errors.start_date }"
+                      :class="{ 'border-red-500': form.errors.start_datetime }"
                     />
-                    <div v-if="form.errors.start_date" class="text-red-500 text-sm mt-1">
-                      {{ form.errors.start_date }}
+                    <div v-if="form.errors.start_datetime" class="text-red-500 text-sm mt-1">
+                      {{ form.errors.start_datetime }}
                     </div>
                   </div>
 
                   <div>
-                    <Label for="end_date">Date de fin *</Label>
+                    <Label for="end_datetime">Date de fin *</Label>
                     <Input
-                      id="end_date"
-                      v-model="form.end_date"
+                      id="end_datetime"
+                      v-model="form.end_datetime"
                       type="datetime-local"
-                      :min="form.start_date || today"
+                      :min="form.start_datetime || today"
                       required
                       class="mt-1"
-                      :class="{ 'border-red-500': form.errors.end_date }"
+                      :class="{ 'border-red-500': form.errors.end_datetime }"
                     />
-                    <div v-if="form.errors.end_date" class="text-red-500 text-sm mt-1">
-                      {{ form.errors.end_date }}
+                    <div v-if="form.errors.end_datetime" class="text-red-500 text-sm mt-1">
+                      {{ form.errors.end_datetime }}
                     </div>
                   </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label for="rental_unit">Unité de location</Label>
-                    <Select v-model="form.rental_unit">
-                      <SelectTrigger class="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem
-                          v-for="unit in availableUnits"
-                          :key="unit.value"
-                          :value="unit.value"
-                        >
-                          {{ unit.label }} - {{ unit.rate }}€{{ getRentalUnitLabel(unit.value) }}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label for="quantity">Quantité *</Label>
-                    <Input
-                      id="quantity"
-                      v-model="form.quantity"
-                      type="number"
-                      min="1"
-                      :max="equipment.max_quantity"
-                      required
-                      class="mt-1"
-                      :class="{ 'border-red-500': form.errors.quantity }"
-                    />
-                    <div v-if="form.errors.quantity" class="text-red-500 text-sm mt-1">
-                      {{ form.errors.quantity }}
-                    </div>
-                  </div>
+                <div>
+                  <Label for="duration_unit">Unité de location</Label>
+                  <Select v-model="form.duration_unit">
+                    <SelectTrigger class="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="unit in availableUnits"
+                        :key="unit.value"
+                        :value="unit.value"
+                      >
+                        {{ unit.label }} - {{ unit.rate }}€{{ getRentalUnitLabel(unit.value) }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div v-if="estimatedDuration > 0" class="p-3 bg-blue-50 rounded-lg">
                   <p class="text-sm text-blue-700">
                     <CheckCircle class="inline w-4 h-4 mr-1" />
-                    Durée estimée: {{ estimatedDuration }} {{ form.rental_unit === 'hour' ? 'heure' : form.rental_unit === 'day' ? 'jour' : form.rental_unit === 'week' ? 'semaine' : 'mois' }}{{ estimatedDuration > 1 ? 's' : '' }}
+                    Durée estimée: {{ estimatedDuration }} {{ form.duration_unit === 'hour' ? 'heure' : form.duration_unit === 'day' ? 'jour' : form.duration_unit === 'week' ? 'semaine' : 'mois' }}{{ estimatedDuration > 1 ? 's' : '' }}
                   </p>
                 </div>
               </CardContent>
@@ -315,10 +297,10 @@ const getRentalUnitLabel = (unit: string) => {
               </CardHeader>
               <CardContent class="space-y-4">
                 <div v-if="equipment.delivery_available">
-                  <Label for="pickup_location">Adresse de livraison (optionnel)</Label>
+                  <Label for="delivery_address">Adresse de livraison (optionnel)</Label>
                   <Textarea
-                    id="pickup_location"
-                    v-model="form.pickup_location"
+                    id="delivery_address"
+                    v-model="form.delivery_address"
                     placeholder="Laissez vide pour un retrait sur place..."
                     rows="2"
                     class="mt-1"
@@ -341,15 +323,26 @@ const getRentalUnitLabel = (unit: string) => {
               <CardHeader>
                 <CardTitle>Demandes spéciales</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Label for="special_requests">Message pour le propriétaire (optionnel)</Label>
-                <Textarea
-                  id="special_requests"
-                  v-model="form.special_requests"
-                  placeholder="Questions, demandes spéciales, horaires préférés..."
-                  rows="3"
-                  class="mt-1"
-                />
+              <CardContent class="space-y-4">
+                <div>
+                  <Label for="usage_purpose">Motif de la location</Label>
+                  <Input
+                    id="usage_purpose"
+                    v-model="form.usage_purpose"
+                    placeholder="ex: Travaux de rénovation, événement..."
+                    class="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label for="special_requests">Message pour le propriétaire (optionnel)</Label>
+                  <Textarea
+                    id="special_requests"
+                    v-model="form.special_requests"
+                    placeholder="Questions, demandes spéciales, horaires préférés..."
+                    rows="3"
+                    class="mt-1"
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -413,24 +406,20 @@ const getRentalUnitLabel = (unit: string) => {
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>Durée</span>
-                  <span>{{ estimatedDuration }} {{ form.rental_unit === 'hour' ? 'h' : form.rental_unit === 'day' ? 'j' : form.rental_unit === 'week' ? 'sem' : 'mois' }}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                  <span>Quantité</span>
-                  <span>{{ form.quantity }}</span>
+                  <span>{{ estimatedDuration }} {{ form.duration_unit === 'hour' ? 'h' : form.duration_unit === 'day' ? 'j' : form.duration_unit === 'week' ? 'sem' : 'mois' }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>Sous-total</span>
-                  <span>{{ Number(selectedUnit?.rate * estimatedDuration * form.quantity || 0).toFixed(2) }}€</span>
+                  <span>{{ Number(selectedUnit?.rate * estimatedDuration || 0).toFixed(2) }}€</span>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div class="flex justify-between text-sm">
                   <span>Frais de service (5%)</span>
-                  <span>{{ Number(selectedUnit?.rate * estimatedDuration * form.quantity * 0.05 || 0).toFixed(2) }}€</span>
+                  <span>{{ Number(selectedUnit?.rate * estimatedDuration * 0.05 || 0).toFixed(2) }}€</span>
                 </div>
-                <div v-if="form.pickup_location && equipment.delivery_available" class="flex justify-between text-sm">
+                <div v-if="form.delivery_address && equipment.delivery_available" class="flex justify-between text-sm">
                   <span>Frais de livraison</span>
                   <span>{{ equipment.delivery_fee || 0 }}€</span>
                 </div>

@@ -341,40 +341,42 @@
         <div class="price-breakdown">
             <div class="price-row">
                 <span class="price-label">Prix de location ({{ $duration }} jour{{ $duration > 1 ? 's' : '' }})</span>
-                <span class="price-value">{{ number_format($rental->total_price, 2, ',', ' ') }} €</span>
+                <span class="price-value">{{ number_format($rental->total_amount, 2, ',', ' ') }} €</span>
             </div>
-            
+
             @if($payment)
                 @if($payment->platform_fee > 0)
                 <div class="price-row">
                     <span class="price-label">Frais de service</span>
-                    <span class="price-value">{{ number_format($payment->platform_fee, 2, ',', ' ') }} €</span>
+                    <span class="price-value">{{ number_format($payment->platform_fee / 100, 2, ',', ' ') }} €</span>
                 </div>
                 @endif
-                
-                @if($payment->payment_fee > 0)
+
+                @if($payment->gateway_fee > 0)
                 <div class="price-row">
                     <span class="price-label">Frais de transaction</span>
-                    <span class="price-value">{{ number_format($payment->payment_fee, 2, ',', ' ') }} €</span>
+                    <span class="price-value">{{ number_format($payment->gateway_fee / 100, 2, ',', ' ') }} €</span>
                 </div>
                 @endif
-                
+
                 <div class="total-row">
                     <span>TOTAL À PAYER</span>
-                    <span>{{ number_format($payment->total_amount, 2, ',', ' ') }} €</span>
+                    <span>{{ number_format($payment->amount / 100, 2, ',', ' ') }} €</span>
                 </div>
-                
+
                 <div style="margin-top: 10px; font-size: 10pt;">
                     <strong>Mode de paiement:</strong> {{ ucfirst($payment->payment_method) }}<br>
                     <strong>Statut:</strong> {{ $payment->status === 'completed' ? 'Payé' : ucfirst($payment->status) }}
-                    @if($payment->transaction_id)
-                        <br><strong>Référence:</strong> {{ $payment->transaction_id }}
+                    @if($payment->stripe_payment_intent_id)
+                        <br><strong>Référence:</strong> {{ $payment->stripe_payment_intent_id }}
+                    @elseif($payment->paypal_order_id)
+                        <br><strong>Référence:</strong> {{ $payment->paypal_order_id }}
                     @endif
                 </div>
             @else
                 <div class="total-row">
                     <span>TOTAL À PAYER</span>
-                    <span>{{ number_format($rental->total_price, 2, ',', ' ') }} €</span>
+                    <span>{{ number_format($rental->total_amount, 2, ',', ' ') }} €</span>
                 </div>
             @endif
         </div>

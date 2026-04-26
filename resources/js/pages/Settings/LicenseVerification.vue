@@ -151,7 +151,7 @@
 
               <div class="flex items-center justify-end space-x-4">
                 <Link
-                  :href="route('settings.driver-license')"
+                  :href="route('license.verification')"
                   class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 >
                   Annuler

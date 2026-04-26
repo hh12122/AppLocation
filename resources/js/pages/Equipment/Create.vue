@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { FormError } from '@/components/ui/form';
 import { Plus, Upload, X, MapPin, Euro, Settings, Camera, Shield } from 'lucide-vue-next';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Props {
   categories: Record<string, any>;
@@ -243,6 +244,16 @@ const rentalUnitOptions = [
       </div>
 
       <form @submit.prevent="submit" enctype="multipart/form-data">
+        <!-- Form Errors Banner -->
+        <Alert v-if="form.hasErrors" variant="destructive" class="mb-6">
+          <AlertDescription>
+            <p class="font-medium mb-1">Veuillez corriger les erreurs suivantes :</p>
+            <ul class="list-disc list-inside text-sm space-y-0.5">
+              <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+
         <Tabs default-value="basic" class="space-y-6">
           <TabsList class="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Informations</TabsTrigger>

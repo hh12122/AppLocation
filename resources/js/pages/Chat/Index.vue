@@ -12,16 +12,14 @@ interface User {
     avatar?: string
 }
 
-interface Vehicle {
-    id: number
-    brand: string
-    model: string
-    year: number
-}
-
-interface Rental {
-    id: number
-    vehicle: Vehicle
+interface BookingSummary {
+    type: string
+    label: string
+    title: string
+    status: string
+    dates: string
+    detail_route: string
+    item_route?: string
 }
 
 interface Message {
@@ -33,7 +31,7 @@ interface Message {
 
 interface Conversation {
     id: number
-    rental: Rental
+    booking_summary: BookingSummary
     renter: User
     owner: User
     other_participant: User
@@ -190,10 +188,12 @@ onUnmounted(() => {
                                                 {{ conversation.other_participant.name }}
                                             </h3>
                                             <p class="text-sm text-gray-600 truncate">
-                                                {{ conversation.rental.vehicle.year }} 
-                                                {{ conversation.rental.vehicle.brand }} 
-                                                {{ conversation.rental.vehicle.model }}
+                                                {{ conversation.booking_summary.title }}
                                             </p>
+                                            <span class="text-xs text-gray-400">
+                                                {{ conversation.booking_summary.type === 'rental' ? '🚗' : conversation.booking_summary.type === 'property_booking' ? '🏠' : '🔧' }}
+                                                {{ conversation.booking_summary.label }}
+                                            </span>
                                         </div>
                                         <div class="flex items-center space-x-2">
                                             <Badge 

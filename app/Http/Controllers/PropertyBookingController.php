@@ -16,6 +16,12 @@ class PropertyBookingController extends Controller
      */
     public function create(Property $property, Request $request)
     {
+        // Prevent booking own property
+        if ($property->owner_id === Auth::id()) {
+            return redirect()->route('properties.show', $property)
+                ->with('error', 'Vous ne pouvez pas réserver votre propre propriété.');
+        }
+
         if (! $property->is_available || $property->status !== 'active') {
             return redirect()->route('properties.show', $property)
                 ->with('error', 'Cette propriété n\'est pas disponible à la réservation.');
@@ -27,7 +33,7 @@ class PropertyBookingController extends Controller
 
         // Validate dates if provided
         if ($checkinDate && $checkoutDate) {
-            if ($checkinDate <= now()->toDateString()) {
+            if ($checkinDate->lte(now()->startOfDay())) {
                 return redirect()->route('properties.show', $property)
                     ->with('error', 'La date d\'arrivée doit être dans le futur.');
             }
@@ -68,6 +74,11 @@ class PropertyBookingController extends Controller
      */
     public function store(Request $request, Property $property)
     {
+        // Prevent booking own property
+        if ($property->owner_id === Auth::id()) {
+            return back()->with('error', 'Vous ne pouvez pas réserver votre propre propriété.');
+        }
+
         $validated = $request->validate([
             'checkin_date' => 'required|date|after:today',
             'checkout_date' => 'required|date|after:checkin_date',
@@ -86,6 +97,17 @@ class PropertyBookingController extends Controller
         // Verify property is still available
         if (! $property->isAvailableForDates($checkinDate, $checkoutDate)) {
             return back()->withErrors(['dates' => 'Cette propriété n\'est plus disponible pour ces dates.']);
+        }
+
+        // Check for duplicate booking with same property + checkin_date + active status
+        $existingBooking = PropertyBooking::where('property_id', $property->id)
+            ->where('checkin_date', $checkinDate->toDateString())
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+            ->where('guest_id', Auth::id())
+            ->first();
+
+        if ($existingBooking) {
+            return back()->withErrors(['checkin_date' => 'Vous avez déjà une réservation pour cette date d\'arrivée.']);
         }
 
         // Calculate pricing

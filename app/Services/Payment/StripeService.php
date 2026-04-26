@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Models\Payment;
 use App\Models\Rental;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
@@ -21,7 +22,7 @@ class StripeService
     /**
      * Create a payment intent for a rental
      */
-    public function createPaymentIntent(Rental $rental, int $amountInCents, array $extraData = []): array
+    public function createPaymentIntent(Model $payable, int $amountInCents, array $extraData = []): array
     {
         try {
             // Calculate fees
@@ -29,35 +30,49 @@ class StripeService
             $gatewayFee = Payment::calculateGatewayFee('stripe', $amountInCents);
             $ownerPayout = Payment::calculateOwnerPayout($amountInCents, $platformFee, $gatewayFee);
 
+            $description = $payable instanceof Rental
+                ? "Location de véhicule #{$payable->id}"
+                : "Réservation propriété #{$payable->id}";
+
+            $metadata = [
+                'payable_type' => get_class($payable),
+                'payable_id' => $payable->id,
+                'platform_fee' => $platformFee,
+                'gateway_fee' => $gatewayFee,
+                'owner_payout' => $ownerPayout,
+            ];
+
+            if ($payable instanceof Rental) {
+                $metadata['renter_id'] = $payable->renter_id;
+                $metadata['vehicle_id'] = $payable->vehicle_id;
+            }
+
             // Create payment intent
             $paymentIntent = PaymentIntent::create([
                 'amount' => $amountInCents,
                 'currency' => strtolower(config('payment.currency', 'eur')),
-                'description' => "Location de véhicule #{$rental->id}",
-                'metadata' => array_merge([
-                    'rental_id' => $rental->id,
-                    'renter_id' => $rental->renter_id,
-                    'vehicle_id' => $rental->vehicle_id,
-                    'platform_fee' => $platformFee,
-                    'gateway_fee' => $gatewayFee,
-                    'owner_payout' => $ownerPayout,
-                ], $extraData['metadata'] ?? []),
+                'description' => $description,
+                'metadata' => array_merge($metadata, $extraData['metadata'] ?? []),
                 'automatic_payment_methods' => [
                     'enabled' => true,
                 ],
             ]);
 
+            $userId = $payable instanceof Rental ? $payable->renter_id : $payable->guest_id;
+
             // Create payment record in database
             $payment = Payment::create([
-                'rental_id' => $rental->id,
-                'user_id' => $rental->renter_id,
+                'payable_type' => get_class($payable),
+                'payable_id' => $payable->id,
+                'rental_id' => $payable instanceof Rental ? $payable->id : null,
+                'user_id' => $userId,
                 'payment_method' => 'stripe',
                 'status' => 'pending',
                 'amount' => $extraData['original_amount'] ?? $amountInCents,
                 'platform_fee' => $platformFee,
                 'gateway_fee' => $gatewayFee,
                 'owner_payout' => $ownerPayout,
-                'referral_credits_used' => ($extraData['referral_credits_used'] ?? 0) * 100, // Store in cents
+                'referral_credits_used' => ($extraData['referral_credits_used'] ?? 0) * 100,
                 'final_amount' => $amountInCents,
                 'currency' => config('payment.currency', 'EUR'),
                 'stripe_payment_intent_id' => $paymentIntent->id,
@@ -112,10 +127,11 @@ class StripeService
                     ]),
                 ]);
 
-                // Update rental payment status and confirm rental
-                $payment->rental->update([
+                // Update payable payment status
+                $payable = $payment->payable;
+                $payable->update([
                     'payment_status' => 'paid',
-                    'status' => 'confirmed',
+                    'status' => $payable instanceof \App\Models\Rental ? 'confirmed' : $payable->status,
                 ]);
 
                 return [
@@ -191,15 +207,21 @@ class StripeService
                 $amountInCents = $payment->amount - $payment->refunded_amount;
             }
 
+            $refundMetadata = [
+                'payment_id' => $payment->id,
+                'payable_type' => $payment->payable_type,
+                'payable_id' => $payment->payable_id,
+            ];
+            if ($payment->rental_id) {
+                $refundMetadata['rental_id'] = $payment->rental_id;
+            }
+
             // Create refund
             $refund = Refund::create([
                 'charge' => $payment->stripe_charge_id,
                 'amount' => $amountInCents,
                 'reason' => 'requested_by_customer',
-                'metadata' => [
-                    'payment_id' => $payment->id,
-                    'rental_id' => $payment->rental_id,
-                ],
+                'metadata' => $refundMetadata,
             ]);
 
             // Update payment record
@@ -213,9 +235,9 @@ class StripeService
                 'refunded_at' => now(),
             ]);
 
-            // Update rental payment status if fully refunded
-            if ($isFullRefund) {
-                $payment->rental->update([
+            // Update payable payment status if fully refunded
+            if ($isFullRefund && $payment->payable) {
+                $payment->payable->update([
                     'payment_status' => 'refunded',
                 ]);
             }

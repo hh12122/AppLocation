@@ -166,7 +166,24 @@ class EquipmentController extends Controller
         $categoryAttributes = $validated['category_attributes'] ?? [];
         unset($validated['category_attributes']);
 
-        $validated[$validated['category'].'_attributes'] = $categoryAttributes;
+        $attributeKeyMap = [
+            'sports_equipment' => 'sports_attributes',
+            'tools_material' => 'tools_attributes',
+            'boats' => 'boat_attributes',
+            'spaces' => 'space_attributes',
+        ];
+        $attributeKey = $attributeKeyMap[$validated['category']] ?? null;
+        if ($attributeKey) {
+            $validated[$attributeKey] = $categoryAttributes;
+        }
+
+        // Set defaults for nullable numeric fields to avoid NOT NULL constraint violations
+        $validated['security_deposit'] = $validated['security_deposit'] ?? 0;
+        $validated['cleaning_fee'] = $validated['cleaning_fee'] ?? 0;
+        $validated['hourly_rate'] = $validated['hourly_rate'] ?? 0;
+        $validated['daily_rate'] = $validated['daily_rate'] ?? 0;
+        $validated['weekly_rate'] = $validated['weekly_rate'] ?? 0;
+        $validated['monthly_rate'] = $validated['monthly_rate'] ?? 0;
 
         $equipment = Equipment::create($validated);
 
@@ -304,7 +321,16 @@ class EquipmentController extends Controller
         if (isset($validated['category_attributes'])) {
             $categoryAttributes = $validated['category_attributes'];
             unset($validated['category_attributes']);
-            $validated[$equipment->category.'_attributes'] = $categoryAttributes;
+            $attributeKeyMap = [
+                'sports_equipment' => 'sports_attributes',
+                'tools_material' => 'tools_attributes',
+                'boats' => 'boat_attributes',
+                'spaces' => 'space_attributes',
+            ];
+            $attributeKey = $attributeKeyMap[$equipment->category] ?? null;
+            if ($attributeKey) {
+                $validated[$attributeKey] = $categoryAttributes;
+            }
         }
 
         $equipment->update($validated);

@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Payment extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'payable_type',
+        'payable_id',
         'rental_id',
         'user_id',
         'payment_method',
@@ -35,7 +38,7 @@ class Payment extends Model
         'refunded_at',
         'failed_at',
         'failure_reason',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
@@ -47,7 +50,15 @@ class Payment extends Model
     ];
 
     /**
-     * Get the rental associated with the payment.
+     * Get the payable entity (polymorphic).
+     */
+    public function payable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /**
+     * Get the rental associated with the payment (legacy).
      */
     public function rental(): BelongsTo
     {
@@ -67,7 +78,7 @@ class Payment extends Model
      */
     public function getFormattedAmountAttribute(): string
     {
-        return number_format($this->amount / 100, 2, ',', ' ') . ' ' . $this->currency;
+        return number_format($this->amount / 100, 2, ',', ' ').' '.$this->currency;
     }
 
     /**
@@ -75,7 +86,7 @@ class Payment extends Model
      */
     public function getFormattedPlatformFeeAttribute(): string
     {
-        return number_format($this->platform_fee / 100, 2, ',', ' ') . ' ' . $this->currency;
+        return number_format($this->platform_fee / 100, 2, ',', ' ').' '.$this->currency;
     }
 
     /**
@@ -83,7 +94,7 @@ class Payment extends Model
      */
     public function getFormattedOwnerPayoutAttribute(): string
     {
-        return number_format($this->owner_payout / 100, 2, ',', ' ') . ' ' . $this->currency;
+        return number_format($this->owner_payout / 100, 2, ',', ' ').' '.$this->currency;
     }
 
     /**
@@ -91,7 +102,7 @@ class Payment extends Model
      */
     public function getFormattedReferralCreditsUsedAttribute(): string
     {
-        return number_format($this->referral_credits_used / 100, 2, ',', ' ') . ' ' . $this->currency;
+        return number_format($this->referral_credits_used / 100, 2, ',', ' ').' '.$this->currency;
     }
 
     /**
@@ -99,7 +110,7 @@ class Payment extends Model
      */
     public function getFormattedFinalAmountAttribute(): string
     {
-        return number_format($this->final_amount / 100, 2, ',', ' ') . ' ' . $this->currency;
+        return number_format($this->final_amount / 100, 2, ',', ' ').' '.$this->currency;
     }
 
     /**
@@ -123,7 +134,7 @@ class Payment extends Model
      */
     public function isRefundable(): bool
     {
-        return $this->status === 'completed' && 
+        return $this->status === 'completed' &&
                $this->refunded_amount < $this->amount;
     }
 
@@ -132,7 +143,7 @@ class Payment extends Model
      */
     public function isFullyRefunded(): bool
     {
-        return $this->status === 'refunded' && 
+        return $this->status === 'refunded' &&
                $this->refunded_amount >= $this->amount;
     }
 
@@ -142,6 +153,7 @@ class Payment extends Model
     public static function calculatePlatformFee(int $amount): int
     {
         $percentage = config('payment.fees.platform_percentage', 10);
+
         return (int) round($amount * ($percentage / 100));
     }
 
@@ -153,15 +165,17 @@ class Payment extends Model
         if ($method === 'stripe') {
             $percentage = config('payment.fees.stripe_fee_percentage', 2.9);
             $fixed = config('payment.fees.stripe_fee_fixed', 0.30) * 100; // Convert to cents
+
             return (int) round(($amount * ($percentage / 100)) + $fixed);
         }
-        
+
         if ($method === 'paypal') {
             $percentage = config('payment.fees.paypal_fee_percentage', 3.4);
             $fixed = config('payment.fees.paypal_fee_fixed', 0.35) * 100; // Convert to cents
+
             return (int) round(($amount * ($percentage / 100)) + $fixed);
         }
-        
+
         return 0; // No fee for cash payments
     }
 

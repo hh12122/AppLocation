@@ -7,8 +7,8 @@
     <!-- Payment Summary -->
     <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div class="flex justify-between items-center mb-2">
-        <span class="text-gray-600 dark:text-gray-400">Montant de la location :</span>
-        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ formatAmount(rental.total_amount * 100) }}</span>
+        <span class="text-gray-600 dark:text-gray-400">{{ payableLabel }} :</span>
+        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ formatAmount(payableAmount) }}</span>
       </div>
       <div v-if="platformFee > 0" class="flex justify-between items-center mb-2">
         <span class="text-gray-600 dark:text-gray-400">Frais de plateforme :</span>
@@ -201,12 +201,19 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 interface Props {
-  rental: {
+  rental?: {
     id: number
     total_amount: number
     vehicle: {
       brand: string
       model: string
+    }
+  }
+  booking?: {
+    id: number
+    total_amount: number
+    property: {
+      title: string
     }
   }
   availableCredits?: number
@@ -218,9 +225,12 @@ interface Props {
     available_credits: number
     referral_rate: number
   }
+  payableType?: 'rental' | 'property_booking'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  payableType: 'rental',
+})
 
 const selectedMethod = ref<'stripe' | 'paypal' | null>(null)
 const processing = ref(false)
@@ -231,23 +241,23 @@ const referralCreditsToUse = ref(0)
 const stripeLoaded = ref(false)
 
 // Calculate fees based on selected payment method
-const baseAmount = computed(() => props.rental.total_amount * 100) // Convert to cents
+const payableAmount = computed(() => (props.rental?.total_amount ?? props.booking?.total_amount ?? 0) * 100)
 
 const platformFee = computed(() => {
-  return Math.round(baseAmount.value * 0.1) // 10% platform fee
+  return Math.round(payableAmount.value * 0.1) // 10% platform fee
 })
 
 const gatewayFee = computed(() => {
   if (selectedMethod.value === 'stripe') {
-    return Math.round(baseAmount.value * 0.029) + 30 // 2.9% + 30 cents
+    return Math.round(payableAmount.value * 0.029) + 30 // 2.9% + 30 cents
   } else if (selectedMethod.value === 'paypal') {
-    return Math.round(baseAmount.value * 0.034) + 35 // 3.4% + 35 cents
+    return Math.round(payableAmount.value * 0.034) + 35 // 3.4% + 35 cents
   }
   return 0
 })
 
 const totalAmountBeforeCredits = computed(() => {
-  return baseAmount.value + platformFee.value + gatewayFee.value
+  return payableAmount.value + platformFee.value + gatewayFee.value
 })
 
 const referralCreditDiscount = computed(() => {
@@ -339,6 +349,10 @@ const processPayment = async () => {
   }
 }
 
+const getPayableId = () => props.rental?.id ?? props.booking?.id ?? 0
+
+const payableLabel = computed(() => props.payableType === 'property_booking' ? 'Montant de la réservation' : 'Montant de la location')
+
 const processCreditsOnlyPayment = async () => {
   const response = await fetch(`/api/payments/stripe/create-intent`, {
     method: 'POST',
@@ -347,7 +361,8 @@ const processCreditsOnlyPayment = async () => {
       'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
     },
     body: JSON.stringify({
-      rental_id: props.rental.id,
+      payable_type: props.payableType,
+      payable_id: getPayableId(),
       amount: totalAmountBeforeCredits.value,
       referral_credits: referralCreditsToUse.value,
     })
@@ -376,7 +391,8 @@ const processStripePayment = async () => {
       'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
     },
     body: JSON.stringify({
-      rental_id: props.rental.id,
+      payable_type: props.payableType,
+      payable_id: getPayableId(),
       amount: totalAmountBeforeCredits.value,
       referral_credits: useReferralCredits.value ? referralCreditsToUse.value : 0,
     })
@@ -420,7 +436,8 @@ const processPayPalPayment = async () => {
       'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
     },
     body: JSON.stringify({
-      rental_id: props.rental.id,
+      payable_type: props.payableType,
+      payable_id: getPayableId(),
       amount: totalAmountBeforeCredits.value,
       referral_credits: useReferralCredits.value ? referralCreditsToUse.value : 0,
     })

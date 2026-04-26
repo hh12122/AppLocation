@@ -14,7 +14,7 @@
         <div v-if="showAction" class="mt-4">
           <div class="-mx-2 -my-1.5 flex">
             <Link
-              :href="route('settings.driver-license')"
+              :href="route('license.verification')"
               :class="actionClasses"
             >
               {{ actionText }}

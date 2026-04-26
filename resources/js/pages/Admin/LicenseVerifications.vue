@@ -11,7 +11,7 @@
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
           <div class="p-6">
             <h3 class="text-lg font-semibold mb-4">Permis en attente de vérification</h3>
-            
+
             <div v-if="users.data.length > 0" class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead class="bg-gray-50 dark:bg-gray-700">
@@ -43,12 +43,8 @@
                           </span>
                         </div>
                         <div class="ml-4">
-                          <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {{ user.name }}
-                          </div>
-                          <div class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ user.email }}
-                          </div>
+                          <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ user.name }}</div>
+                          <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
                         </div>
                       </div>
                     </td>
@@ -65,19 +61,20 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        @click="openVerificationModal(user)"
-                        class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                        type="button"
+                        @click.stop="openVerificationModal(user)"
+                        class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
                       >
-                        Vérifier
+                        Verifier
                       </button>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            
+
             <div v-else class="text-center py-8">
-              <p class="text-gray-500 dark:text-gray-400">Aucun permis en attente de vérification.</p>
+              <p class="text-gray-500 dark:text-gray-400">Aucun permis en attente de verification.</p>
             </div>
 
             <div v-if="users.last_page > 1" class="mt-6">
@@ -88,27 +85,27 @@
       </div>
     </div>
 
-    <!-- Modal de vérification -->
+    <!-- Modal de verification -->
     <Modal :show="showModal" @close="closeModal">
       <div v-if="selectedUser" class="p-6">
-        <h3 class="text-lg font-semibold mb-4">Vérifier le permis de conduire</h3>
-        
+        <h3 class="text-lg font-semibold mb-4">Verifier le permis de conduire</h3>
+
         <div class="mb-6">
           <div class="mb-4">
             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Utilisateur:</p>
             <p class="text-gray-900 dark:text-gray-100">{{ selectedUser.name }} ({{ selectedUser.email }})</p>
           </div>
-          
+
           <div class="mb-4">
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Numéro de permis:</p>
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Numero de permis:</p>
             <p class="text-gray-900 dark:text-gray-100">{{ selectedUser.driving_license_number }}</p>
           </div>
-          
+
           <div class="mb-4">
             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Date d'expiration:</p>
             <p class="text-gray-900 dark:text-gray-100">{{ formatDate(selectedUser.driving_license_expiry) }}</p>
           </div>
-          
+
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recto du permis:</p>
@@ -116,9 +113,12 @@
                 v-if="selectedUser.driving_license_front"
                 :src="`/storage/${selectedUser.driving_license_front}`"
                 alt="Recto du permis"
-                class="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
-                @click="openImagePreview(`/storage/${selectedUser.driving_license_front}`)"
+                class="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600 cursor-zoom-in"
+                @click.stop="openImagePreview(`/storage/${selectedUser.driving_license_front}`)"
               />
+              <div v-else class="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                <span class="text-gray-400 text-sm">Aucune image</span>
+              </div>
             </div>
             <div>
               <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Verso du permis:</p>
@@ -126,38 +126,39 @@
                 v-if="selectedUser.driving_license_back"
                 :src="`/storage/${selectedUser.driving_license_back}`"
                 alt="Verso du permis"
-                class="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
-                @click="openImagePreview(`/storage/${selectedUser.driving_license_back}`)"
+                class="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600 cursor-zoom-in"
+                @click.stop="openImagePreview(`/storage/${selectedUser.driving_license_back}`)"
               />
+              <div v-else class="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                <span class="text-gray-400 text-sm">Aucune image</span>
+              </div>
             </div>
           </div>
         </div>
 
         <form @submit.prevent="submitVerification">
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Décision
-            </label>
-            <div class="flex items-center space-x-4">
-              <label class="flex items-center">
+            <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Decision</p>
+            <div class="flex items-center gap-8">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="radio"
-                  v-model="verificationForm.status"
+                  name="status"
                   value="verified"
-                  class="mr-2"
-                  required
+                  v-model="verificationForm.status"
+                  class="w-4 h-4 text-green-600"
                 />
-                <span class="text-green-600">Approuver</span>
+                <span class="text-green-600 font-semibold text-sm">Approuver</span>
               </label>
-              <label class="flex items-center">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="radio"
-                  v-model="verificationForm.status"
+                  name="status"
                   value="rejected"
-                  class="mr-2"
-                  required
+                  v-model="verificationForm.status"
+                  class="w-4 h-4 text-red-600"
                 />
-                <span class="text-red-600">Rejeter</span>
+                <span class="text-red-600 font-semibold text-sm">Rejeter</span>
               </label>
             </div>
           </div>
@@ -171,47 +172,59 @@
               v-model="verificationForm.rejection_reason"
               rows="3"
               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="Expliquez pourquoi le permis est rejeté..."
-              required
+              placeholder="Expliquez pourquoi le permis est rejecte..."
             ></textarea>
           </div>
 
-          <div class="flex justify-end space-x-3">
+          <div class="flex justify-end gap-3 mt-6">
             <button
               type="button"
-              @click="closeModal"
+              @click.stop="closeModal"
               class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               Annuler
             </button>
             <button
               type="submit"
-              :disabled="verificationForm.processing"
-              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+              :disabled="verificationForm.processing || !verificationForm.status"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Confirmer
+              {{ verificationForm.processing ? 'En cours...' : 'Confirmer' }}
             </button>
           </div>
         </form>
       </div>
     </Modal>
 
-    <!-- Modal de prévisualisation d'image -->
-    <Modal :show="showImagePreview" @close="closeImagePreview" max-width="4xl">
-      <div class="p-4">
+    <!-- Preview image : Teleport independant, evite tout conflit avec le modal principal -->
+    <Teleport to="body">
+      <div
+        v-if="showImagePreview"
+        class="fixed inset-0 flex items-center justify-center bg-black/85"
+        style="z-index: 9999;"
+        @click.self="closeImagePreview"
+      >
+        <button
+          type="button"
+          class="absolute top-4 right-6 text-white text-4xl font-bold hover:text-gray-300 leading-none"
+          @click.stop="closeImagePreview"
+        >
+          &times;
+        </button>
         <img
           :src="previewImageUrl"
-          alt="Prévisualisation"
-          class="w-full h-auto"
+          alt="Previsualisation"
+          class="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl"
+          @click.stop
         />
       </div>
-    </Modal>
+    </Teleport>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Modal from '@/components/Modal.vue';
 import Pagination from '@/components/Pagination.vue';
@@ -229,7 +242,7 @@ const previewImageUrl = ref('');
 
 const verificationForm = useForm({
   status: '',
-  rejection_reason: ''
+  rejection_reason: '',
 });
 
 function openVerificationModal(user: any) {
@@ -258,7 +271,8 @@ function submitVerification() {
   verificationForm.post(route('admin.license-verifications.verify', selectedUser.value.id), {
     onSuccess: () => {
       closeModal();
-    }
+      router.reload({ only: ['users'] });
+    },
   });
 }
 
@@ -266,7 +280,7 @@ function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
   });
 }
 

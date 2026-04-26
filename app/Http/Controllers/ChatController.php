@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Conversation;
+use App\Models\EquipmentBooking;
 use App\Models\Message;
+use App\Models\PropertyBooking;
 use App\Models\Rental;
 use App\Notifications\NewMessageNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Broadcast;
 use Inertia\Inertia;
 
 class ChatController extends Controller
@@ -19,10 +20,10 @@ class ChatController extends Controller
 
         $conversations = Conversation::forUser($user)
             ->with([
-                'rental.vehicle',
+                'conversable',
                 'renter:id,name,avatar',
                 'owner:id,name,avatar',
-                'latestMessage.sender:id,name'
+                'latestMessage.sender:id,name',
             ])
             ->withCount(['messages as unread_messages_count' => function ($query) use ($user) {
                 $query->where('user_id', '!=', $user->id)->whereNull('read_at');
@@ -31,13 +32,15 @@ class ChatController extends Controller
             ->orderByDesc('last_message_at')
             ->get()
             ->map(function ($conversation) use ($user) {
-                $otherParticipant = $conversation->getOtherParticipant($user);
-                $conversation->other_participant = $otherParticipant;
+                $conversation->other_participant = $conversation->getOtherParticipant($user);
                 $conversation->unread_count = $conversation->unread_messages_count ?? 0;
+                $conversation->booking_summary = $conversation->booking_summary;
+
                 return $conversation;
             });
+
         return Inertia::render('Chat/Index', [
-            'conversations' => $conversations
+            'conversations' => $conversations,
         ]);
     }
 
@@ -45,21 +48,17 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
-        // Load conversation data
         $conversation->load([
-            'rental.vehicle',
+            'conversable',
             'renter:id,name,avatar',
             'owner:id,name,avatar',
             'messages' => function ($query) {
-                $query->with('sender:id,name,avatar')
-                      ->orderBy('created_at');
-            }
+                $query->with('sender:id,name,avatar')->orderBy('created_at');
+            },
         ]);
 
-        // Mark all messages as read for current user
         $conversation->markAllMessagesAsReadFor($user);
 
         $otherParticipant = $conversation->getOtherParticipant($user);
@@ -68,46 +67,44 @@ class ChatController extends Controller
             'conversation' => $conversation,
             'otherParticipant' => $otherParticipant,
             'messages' => $conversation->messages,
-            'rental' => $conversation->rental
+            'bookingSummary' => $conversation->booking_summary,
         ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'rental_id' => 'required|exists:rentals,id',
-            'message' => 'required|string|max:1000'
+            'conversable_type' => 'required|string|in:App\\Models\\Rental,App\\Models\\PropertyBooking,App\\Models\\EquipmentBooking',
+            'conversable_id' => 'required|integer',
+            'message' => 'required|string|max:1000',
         ]);
 
-        $rental = Rental::with('vehicle.owner')->findOrFail($validated['rental_id']);
+        $conversableClass = $validated['conversable_type'];
+        $conversable = $conversableClass::findOrFail($validated['conversable_id']);
         $user = Auth::user();
 
-        // Check if user is participant in this rental
         abort_unless(
-            $user->id === $rental->renter_id || $user->id === $rental->vehicle->owner_id,
+            Conversation::isUserAuthorizedFor($conversable, $user),
             403,
-            'You are not authorized to send messages for this rental.'
+            'You are not authorized to send messages for this booking.'
         );
 
-        // Find or create conversation
-        $conversation = Conversation::findOrCreateForRental($rental);
+        $conversation = Conversation::findOrCreateFor($conversable);
 
-        // Create message
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
             'message' => $validated['message'],
-            'message_type' => 'text'
+            'message_type' => 'text',
         ]);
 
         $message->load('sender:id,name,avatar');
 
-        // Broadcast the message to other participants
         $this->broadcastMessage($conversation, $message);
 
         return response()->json([
             'message' => $message,
-            'conversation_id' => $conversation->id
+            'conversation_id' => $conversation->id,
         ]);
     }
 
@@ -115,24 +112,22 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
         $validated = $request->validate([
             'message' => 'required|string|max:1000',
-            'message_type' => 'sometimes|in:text,image,system'
+            'message_type' => 'sometimes|in:text,image,system',
         ]);
 
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
             'message' => $validated['message'],
-            'message_type' => $validated['message_type'] ?? 'text'
+            'message_type' => $validated['message_type'] ?? 'text',
         ]);
 
         $message->load('sender:id,name,avatar');
 
-        // Broadcast the message
         $this->broadcastMessage($conversation, $message);
 
         return response()->json(['message' => $message]);
@@ -142,7 +137,6 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
         $perPage = $request->get('per_page', 20);
@@ -160,7 +154,6 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
         $conversation->markAllMessagesAsReadFor($user);
@@ -173,8 +166,8 @@ class ChatController extends Controller
         $user = Auth::user();
 
         $unreadCount = Message::whereHas('conversation', function ($query) use ($user) {
-                $query->forUser($user);
-            })
+            $query->forUser($user);
+        })
             ->where('user_id', '!=', $user->id)
             ->whereNull('read_at')
             ->count();
@@ -185,17 +178,12 @@ class ChatController extends Controller
     public function createForRental(Request $request, Rental $rental)
     {
         $user = Auth::user();
+        $rental->load('vehicle');
 
-        // Check if user is participant in this rental
-        abort_unless(
-            $user->id === $rental->renter_id || $user->id === $rental->vehicle->owner_id,
-            403
-        );
+        abort_unless(Conversation::isUserAuthorizedFor($rental, $user), 403);
 
-        // Find or create conversation
-        $conversation = Conversation::findOrCreateForRental($rental);
+        $conversation = Conversation::findOrCreateFor($rental);
 
-        // If this is a new conversation, create a system message
         if ($conversation->wasRecentlyCreated) {
             Message::createSystemMessage(
                 $conversation,
@@ -206,11 +194,48 @@ class ChatController extends Controller
         return redirect()->route('chat.show', $conversation);
     }
 
+    public function createForPropertyBooking(Request $request, PropertyBooking $booking)
+    {
+        $user = Auth::user();
+        $booking->load('property');
+
+        abort_unless(Conversation::isUserAuthorizedFor($booking, $user), 403);
+
+        $conversation = Conversation::findOrCreateFor($booking);
+
+        if ($conversation->wasRecentlyCreated) {
+            Message::createSystemMessage(
+                $conversation,
+                "Conversation démarrée pour la réservation de la propriété {$booking->property->title}"
+            );
+        }
+
+        return redirect()->route('chat.show', $conversation);
+    }
+
+    public function createForEquipmentBooking(Request $request, EquipmentBooking $booking)
+    {
+        $user = Auth::user();
+        $booking->load('equipment');
+
+        abort_unless(Conversation::isUserAuthorizedFor($booking, $user), 403);
+
+        $conversation = Conversation::findOrCreateFor($booking);
+
+        if ($conversation->wasRecentlyCreated) {
+            Message::createSystemMessage(
+                $conversation,
+                "Conversation démarrée pour la réservation du matériel {$booking->equipment->name}"
+            );
+        }
+
+        return redirect()->route('chat.show', $conversation);
+    }
+
     public function archive(Conversation $conversation)
     {
         $user = Auth::user();
 
-        // Check if user is participant
         abort_unless($conversation->isParticipant($user), 403);
 
         $conversation->update(['is_archived' => true]);
@@ -221,21 +246,12 @@ class ChatController extends Controller
     private function broadcastMessage(Conversation $conversation, Message $message)
     {
         try {
-            // Broadcast to conversation channel
             broadcast(new \App\Events\MessageSent($conversation, $message))->toOthers();
 
-            // Send notification to the other participant
             $otherParticipant = $conversation->getOtherParticipant($message->sender);
             $otherParticipant->notify(new NewMessageNotification($message, $conversation));
         } catch (\Exception $e) {
-            // Log the error but don't break the request
-            \Log::error('Broadcasting or notification failed: ' . $e->getMessage());
+            \Log::error('Broadcasting or notification failed: '.$e->getMessage());
         }
-    }
-
-    private function sendPushNotification(Conversation $conversation, Message $message)
-    {
-        // Implementation for push notifications
-        // This could integrate with services like FCM, OneSignal, etc.
     }
 }

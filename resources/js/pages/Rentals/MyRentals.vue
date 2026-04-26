@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -215,20 +215,13 @@ const stats = {
                                         >
                                             📄 Contrat PDF
                                         </a>
-                                        <form
+                                        <button
                                             v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
-                                            :action="route('chat.create-rental', rental.id)"
-                                            method="POST"
-                                            class="inline"
+                                            @click="router.post(route('chat.create-rental', rental.id))"
+                                            class="text-green-600 hover:text-green-800 text-sm font-medium"
                                         >
-                                            <input type="hidden" name="_token" :value="$page.props.csrf_token" />
-                                            <button
-                                                type="submit"
-                                                class="text-green-600 hover:text-green-800 text-sm font-medium"
-                                            >
-                                                💬 Chat
-                                            </button>
-                                        </form>
+                                            💬 Chat
+                                        </button>
                                         <Link
                                             :href="route('vehicles.show', rental.vehicle.id)"
                                             class="text-green-600 hover:text-green-800 text-sm font-medium"

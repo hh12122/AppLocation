@@ -197,7 +197,7 @@ function formatDate(date: string): string {
 }
 
 function submitLicense() {
-  form.patch(route('settings.driver-license'), {
+  form.post(route('license.upload'), {
     preserveScroll: true
   });
 }

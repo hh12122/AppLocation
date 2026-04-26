@@ -65,7 +65,7 @@ const getItemImage = (item: any) => {
 // Get item price
 const getItemPrice = (item: any) => {
   if (item.daily_rate) return `${item.daily_rate}€/jour`;
-  if (item.price_per_night) return `${item.price_per_night}€/nuit`;
+  if (item.nightly_rate) return `${item.nightly_rate}€/nuit`;
   if (item.hourly_rate) return `${item.hourly_rate}€/heure`;
   return 'Prix variable';
 };

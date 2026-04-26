@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Models\PropertyBooking;
 use App\Models\Rental;
+use App\Notifications\BookingConfirmed;
+use App\Notifications\NewBookingReceived;
 use App\Services\Payment\PayPalService;
 use App\Services\Payment\StripeService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -95,33 +99,55 @@ class PaymentController extends Controller
     }
 
     /**
+     * Show payment form for a property booking
+     */
+    public function showPropertyBooking(PropertyBooking $booking)
+    {
+        if ($booking->guest_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to this payment.');
+        }
+
+        if ($booking->payment_status === 'paid') {
+            return redirect()->route('property-bookings.show', $booking)
+                ->with('message', 'Cette réservation a déjà été payée.');
+        }
+
+        $user = Auth::user();
+
+        return Inertia::render('payment/PropertyBookingForm', [
+            'booking' => $booking->load(['property.owner', 'property.images', 'guest']),
+            'availableCredits' => $user->getAvailableCredits(),
+            'referralStats' => $user->getReferralStats(),
+        ]);
+    }
+
+    /**
      * Create Stripe payment intent
      */
     public function createStripeIntent(Request $request)
     {
         $request->validate([
-            'rental_id' => 'required|exists:rentals,id',
-            'amount' => 'required|integer|min:50', // Minimum 50 cents
+            'payable_type' => 'required|string|in:rental,property_booking',
+            'payable_id' => 'required|integer',
+            'amount' => 'required|integer|min:50',
             'referral_credits' => 'nullable|numeric|min:0',
         ]);
 
         try {
-            $rental = Rental::findOrFail($request->rental_id);
+            $payable = $this->resolvePayable($request->payable_type, $request->payable_id);
             $user = Auth::user();
 
-            // Verify user owns this rental
-            if ($rental->renter_id !== $user->id) {
+            if (! $payable || ! $this->verifyPayableOwnership($payable, $user)) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Unauthorized access to this rental.',
+                    'error' => 'Accès non autorisé à ce paiement.',
                 ], 403);
             }
 
-            // Check if already paid
-            if ($rental->payment_status === 'paid') {
+            if ($payable->payment_status === 'paid') {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Cette location a déjà été payée.',
+                    'error' => 'Ce paiement a déjà été effectué.',
                 ], 400);
             }
 
@@ -129,33 +155,30 @@ class PaymentController extends Controller
             $referralCreditsUsed = 0;
             $finalAmount = $originalAmount;
 
-            // Apply referral credits if requested
             if ($request->referral_credits && $request->referral_credits > 0) {
                 $creditsToUse = min($request->referral_credits, $user->getAvailableCredits());
-                $creditsToUse = min($creditsToUse, $originalAmount / 100); // Convert cents to euros
+                $creditsToUse = min($creditsToUse, $originalAmount / 100);
 
                 if ($creditsToUse > 0 && $user->canUseReferralCredits($creditsToUse)) {
                     $referralCreditsUsed = $creditsToUse;
-                    $finalAmount = max(50, $originalAmount - ($creditsToUse * 100)); // Ensure minimum 50 cents
+                    $finalAmount = max(50, $originalAmount - ($creditsToUse * 100));
                 }
             }
 
-            // If the final amount is 0 or very small, handle as free payment
             if ($finalAmount <= 0) {
-                // Use all credits to cover the payment
-                if ($user->useReferralCredits($referralCreditsUsed, $rental)) {
-                    // Mark rental as paid and confirmed
-                    $rental->update([
+                if ($user->useReferralCredits($referralCreditsUsed, $payable)) {
+                    $payable->update([
                         'payment_status' => 'paid',
-                        'status' => 'confirmed',
+                        'status' => $payable instanceof Rental ? 'confirmed' : $payable->status,
                     ]);
 
-                    // Create a payment record
                     $payment = Payment::create([
-                        'rental_id' => $rental->id,
+                        'payable_type' => get_class($payable),
+                        'payable_id' => $payable->id,
+                        'rental_id' => $payable instanceof Rental ? $payable->id : null,
                         'user_id' => $user->id,
                         'amount' => $originalAmount,
-                        'referral_credits_used' => $referralCreditsUsed * 100, // Store in cents
+                        'referral_credits_used' => $referralCreditsUsed * 100,
                         'final_amount' => 0,
                         'payment_method' => 'referral_credits',
                         'status' => 'completed',
@@ -170,15 +193,13 @@ class PaymentController extends Controller
                     ]);
                 }
             } else {
-                // Create Stripe payment intent for remaining amount
-                $result = $this->stripeService->createPaymentIntent($rental, $finalAmount, [
+                $result = $this->stripeService->createPaymentIntent($payable, $finalAmount, [
                     'referral_credits_used' => $referralCreditsUsed,
                     'original_amount' => $originalAmount,
                 ]);
 
                 if ($result['success'] && $referralCreditsUsed > 0) {
-                    // Use the referral credits
-                    $user->useReferralCredits($referralCreditsUsed, $rental);
+                    $user->useReferralCredits($referralCreditsUsed, $payable);
                 }
 
                 return response()->json($result);
@@ -200,28 +221,27 @@ class PaymentController extends Controller
     public function createPayPalOrder(Request $request)
     {
         $request->validate([
-            'rental_id' => 'required|exists:rentals,id',
+            'payable_type' => 'required|string|in:rental,property_booking',
+            'payable_id' => 'required|integer',
             'amount' => 'required|integer|min:50',
             'referral_credits' => 'nullable|numeric|min:0',
         ]);
 
         try {
-            $rental = Rental::findOrFail($request->rental_id);
+            $payable = $this->resolvePayable($request->payable_type, $request->payable_id);
             $user = Auth::user();
 
-            // Verify user owns this rental
-            if ($rental->renter_id !== $user->id) {
+            if (! $payable || ! $this->verifyPayableOwnership($payable, $user)) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Unauthorized access to this rental.',
+                    'error' => 'Accès non autorisé à ce paiement.',
                 ], 403);
             }
 
-            // Check if already paid
-            if ($rental->payment_status === 'paid') {
+            if ($payable->payment_status === 'paid') {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Cette location a déjà été payée.',
+                    'error' => 'Ce paiement a déjà été effectué.',
                 ], 400);
             }
 
@@ -229,33 +249,30 @@ class PaymentController extends Controller
             $referralCreditsUsed = 0;
             $finalAmount = $originalAmount;
 
-            // Apply referral credits if requested
             if ($request->referral_credits && $request->referral_credits > 0) {
                 $creditsToUse = min($request->referral_credits, $user->getAvailableCredits());
-                $creditsToUse = min($creditsToUse, $originalAmount / 100); // Convert cents to euros
+                $creditsToUse = min($creditsToUse, $originalAmount / 100);
 
                 if ($creditsToUse > 0 && $user->canUseReferralCredits($creditsToUse)) {
                     $referralCreditsUsed = $creditsToUse;
-                    $finalAmount = max(50, $originalAmount - ($creditsToUse * 100)); // Ensure minimum 50 cents
+                    $finalAmount = max(50, $originalAmount - ($creditsToUse * 100));
                 }
             }
 
-            // If the final amount is 0 or very small, handle as free payment
             if ($finalAmount <= 0) {
-                // Use all credits to cover the payment
-                if ($user->useReferralCredits($referralCreditsUsed, $rental)) {
-                    // Mark rental as paid and confirmed
-                    $rental->update([
+                if ($user->useReferralCredits($referralCreditsUsed, $payable)) {
+                    $payable->update([
                         'payment_status' => 'paid',
-                        'status' => 'confirmed',
+                        'status' => $payable instanceof Rental ? 'confirmed' : $payable->status,
                     ]);
 
-                    // Create a payment record
                     $payment = Payment::create([
-                        'rental_id' => $rental->id,
+                        'payable_type' => get_class($payable),
+                        'payable_id' => $payable->id,
+                        'rental_id' => $payable instanceof Rental ? $payable->id : null,
                         'user_id' => $user->id,
                         'amount' => $originalAmount,
-                        'referral_credits_used' => $referralCreditsUsed * 100, // Store in cents
+                        'referral_credits_used' => $referralCreditsUsed * 100,
                         'final_amount' => 0,
                         'payment_method' => 'referral_credits',
                         'status' => 'completed',
@@ -270,15 +287,13 @@ class PaymentController extends Controller
                     ]);
                 }
             } else {
-                // Create PayPal order for remaining amount
-                $result = $this->paypalService->createOrder($rental, $finalAmount, [
+                $result = $this->paypalService->createOrder($payable, $finalAmount, [
                     'referral_credits_used' => $referralCreditsUsed,
                     'original_amount' => $originalAmount,
                 ]);
 
                 if ($result['success'] && $referralCreditsUsed > 0) {
-                    // Use the referral credits
-                    $user->useReferralCredits($referralCreditsUsed, $rental);
+                    $user->useReferralCredits($referralCreditsUsed, $payable);
                 }
 
                 return response()->json($result);
@@ -301,6 +316,7 @@ class PaymentController extends Controller
     {
         $payment = null;
         $rental = null;
+        $booking = null;
 
         // Handle Stripe payment confirmation
         if ($request->has('payment_intent')) {
@@ -308,7 +324,6 @@ class PaymentController extends Controller
 
             if ($result['success']) {
                 $payment = $result['payment'];
-                $rental = $payment->rental;
             }
         }
 
@@ -318,13 +333,34 @@ class PaymentController extends Controller
 
             if ($result['success']) {
                 $payment = $result['payment'];
-                $rental = $payment->rental;
+            }
+        }
+
+        // Load the payable entity for display
+        if ($payment) {
+            $payment->load('payable');
+            if ($payment->payable instanceof Rental) {
+                $rental = $payment->payable->load('vehicle');
+            } elseif ($payment->payable instanceof PropertyBooking) {
+                $booking = $payment->payable->load(['property', 'guest']);
+
+                // Send notifications for property booking payment
+                try {
+                    $guest = $booking->guest;
+                    $owner = $booking->property->owner;
+
+                    $guest->notify(new BookingConfirmed($booking));
+                    $owner->notify(new NewBookingReceived($booking));
+                } catch (\Exception $e) {
+                    Log::error('Booking notification failed: '.$e->getMessage());
+                }
             }
         }
 
         return Inertia::render('payment/Success', [
             'payment' => $payment,
-            'rental' => $rental?->load('vehicle'),
+            'rental' => $rental,
+            'booking' => $booking,
         ]);
     }
 
@@ -347,10 +383,20 @@ class PaymentController extends Controller
      */
     public function refund(Request $request, Payment $payment)
     {
-        // Check if user is authorized (rental owner or admin)
         $user = Auth::user();
-        if (! $user->is_admin && $payment->rental->vehicle->owner_id !== $user->id) {
-            abort(403, 'Unauthorized to refund this payment.');
+
+        // Check authorization based on payable type
+        $payable = $payment->payable;
+        if ($payable instanceof Rental) {
+            if (! $user->is_admin && $payable->vehicle->owner_id !== $user->id) {
+                abort(403, 'Unauthorized to refund this payment.');
+            }
+        } elseif ($payable instanceof PropertyBooking) {
+            if (! $user->is_admin && $payable->property->owner_id !== $user->id) {
+                abort(403, 'Unauthorized to refund this payment.');
+            }
+        } else {
+            abort(403, 'Unknown payable type.');
         }
 
         $request->validate([
@@ -431,5 +477,27 @@ class PaymentController extends Controller
 
             return response()->json(['error' => 'Webhook error'], 400);
         }
+    }
+
+    private function resolvePayable(string $type, int $id): ?Model
+    {
+        return match ($type) {
+            'rental' => Rental::find($id),
+            'property_booking' => PropertyBooking::find($id),
+            default => null,
+        };
+    }
+
+    private function verifyPayableOwnership(Model $payable, $user): bool
+    {
+        if ($payable instanceof Rental) {
+            return $payable->renter_id === $user->id;
+        }
+
+        if ($payable instanceof PropertyBooking) {
+            return $payable->guest_id === $user->id;
+        }
+
+        return false;
     }
 }

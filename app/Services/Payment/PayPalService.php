@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Models\Payment;
 use App\Models\Rental;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use PayPalCheckoutSdk\Core\PayPalHttpClient;
 use PayPalCheckoutSdk\Core\ProductionEnvironment;
@@ -44,9 +45,9 @@ class PayPalService
     }
 
     /**
-     * Create a PayPal order for a rental
+     * Create a PayPal order for a payable entity
      */
-    public function createOrder(Rental $rental, int $amountInCents, array $extraData = []): array
+    public function createOrder(Model $payable, int $amountInCents, array $extraData = []): array
     {
         try {
             // Calculate fees
@@ -57,14 +58,27 @@ class PayPalService
             // Convert cents to euros
             $amountInEuros = number_format($amountInCents / 100, 2, '.', '');
 
+            $payableType = $payable instanceof Rental ? 'rental' : 'booking';
+            $description = $payable instanceof Rental
+                ? "Location de véhicule #{$payable->id}"
+                : "Réservation propriété #{$payable->id}";
+
+            $itemName = $payable instanceof Rental
+                ? "Location véhicule {$payable->vehicle->brand} {$payable->vehicle->model}"
+                : 'Réservation propriété';
+
+            $itemDescription = $payable instanceof Rental
+                ? "Du {$payable->start_date->format('d/m/Y')} au {$payable->end_date->format('d/m/Y')}"
+                : "Du {$payable->checkin_date->format('d/m/Y')} au {$payable->checkout_date->format('d/m/Y')}";
+
             $request = new OrdersCreateRequest;
             $request->prefer('return=representation');
             $request->body = [
                 'intent' => 'CAPTURE',
                 'purchase_units' => [[
-                    'reference_id' => 'rental_'.$rental->id,
-                    'description' => "Location de véhicule #{$rental->id}",
-                    'custom_id' => (string) $rental->id,
+                    'reference_id' => $payableType.'_'.$payable->id,
+                    'description' => $description,
+                    'custom_id' => (string) $payable->id,
                     'amount' => [
                         'currency_code' => config('payment.currency', 'EUR'),
                         'value' => $amountInEuros,
@@ -76,8 +90,8 @@ class PayPalService
                         ],
                     ],
                     'items' => [[
-                        'name' => "Location véhicule {$rental->vehicle->brand} {$rental->vehicle->model}",
-                        'description' => "Du {$rental->start_date->format('d/m/Y')} au {$rental->end_date->format('d/m/Y')}",
+                        'name' => $itemName,
+                        'description' => $itemDescription,
                         'unit_amount' => [
                             'currency_code' => config('payment.currency', 'EUR'),
                             'value' => $amountInEuros,
@@ -97,17 +111,21 @@ class PayPalService
 
             $response = $this->client->execute($request);
 
+            $userId = $payable instanceof Rental ? $payable->renter_id : $payable->guest_id;
+
             // Create payment record in database
             $payment = Payment::create([
-                'rental_id' => $rental->id,
-                'user_id' => $rental->renter_id,
+                'payable_type' => get_class($payable),
+                'payable_id' => $payable->id,
+                'rental_id' => $payable instanceof Rental ? $payable->id : null,
+                'user_id' => $userId,
                 'payment_method' => 'paypal',
                 'status' => 'pending',
                 'amount' => $extraData['original_amount'] ?? $amountInCents,
                 'platform_fee' => $platformFee,
                 'gateway_fee' => $gatewayFee,
                 'owner_payout' => $ownerPayout,
-                'referral_credits_used' => ($extraData['referral_credits_used'] ?? 0) * 100, // Store in cents
+                'referral_credits_used' => ($extraData['referral_credits_used'] ?? 0) * 100,
                 'final_amount' => $amountInCents,
                 'currency' => config('payment.currency', 'EUR'),
                 'paypal_order_id' => $response->result->id,
@@ -178,10 +196,11 @@ class PayPalService
                     ]),
                 ]);
 
-                // Update rental payment status and confirm rental
-                $payment->rental->update([
+                // Update payable payment status
+                $payable = $payment->payable;
+                $payable->update([
                     'payment_status' => 'paid',
-                    'status' => 'confirmed',
+                    'status' => $payable instanceof Rental ? 'confirmed' : $payable->status,
                 ]);
 
                 return [
@@ -274,9 +293,9 @@ class PayPalService
                 'refunded_at' => now(),
             ]);
 
-            // Update rental payment status if fully refunded
-            if ($isFullRefund) {
-                $payment->rental->update([
+            // Update payable payment status if fully refunded
+            if ($isFullRefund && $payment->payable) {
+                $payment->payable->update([
                     'payment_status' => 'refunded',
                 ]);
             }

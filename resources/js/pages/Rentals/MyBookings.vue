@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -312,20 +312,13 @@ const stats = {
                                             📄 Contrat PDF
                                         </Link>
 
-                                        <form
+                                        <button
                                             v-if="['confirmed', 'active'].includes(rental.status)"
-                                            :action="route('chat.create-rental', rental.id)"
-                                            method="POST"
-                                            class="inline"
+                                            @click="router.post(route('chat.create-rental', rental.id))"
+                                            class="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
                                         >
-                                            <input type="hidden" name="_token" :value="$page.props.csrf_token" />
-                                            <button
-                                                type="submit"
-                                                class="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
-                                            >
-                                                💬 Chat
-                                            </button>
-                                        </form>
+                                            💬 Chat
+                                        </button>
 
                                         <a
                                             v-if="rental.renter.phone && ['confirmed', 'active'].includes(rental.status)"

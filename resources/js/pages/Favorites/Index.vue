@@ -58,7 +58,7 @@ interface Property {
     bedrooms: number
     bathrooms: number
     max_guests: number
-    price_per_night: number
+    nightly_rate: number
     city: string
     images: Image[]
     owner: Owner
@@ -196,8 +196,8 @@ const getItemRoute = (favorite: Favorite) => {
 const getItemPrice = (item: FavoritableItem): number => {
     if ('daily_rate' in item) {
         return item.daily_rate
-    } else if ('price_per_night' in item) {
-        return item.price_per_night
+    } else if ('nightly_rate' in item) {
+        return item.nightly_rate
     }
     return 0
 }

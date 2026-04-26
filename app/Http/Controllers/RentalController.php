@@ -57,8 +57,15 @@ class RentalController extends Controller
             }
         }
 
-        abort_if($vehicle->owner_id === auth()->id(), 403, 'Vous ne pouvez pas louer votre propre véhicule.');
-        abort_if(! $vehicle->is_available || $vehicle->status !== 'active', 403, 'Ce véhicule n\'est pas disponible.');
+        if ($vehicle->owner_id === auth()->id()) {
+            return redirect()->route('vehicles.show', $vehicle)
+                ->with('error', 'Vous ne pouvez pas louer votre propre véhicule.');
+        }
+
+        if (! $vehicle->is_available || $vehicle->status !== 'active') {
+            return redirect()->route('vehicles.show', $vehicle)
+                ->with('error', 'Ce véhicule n\'est pas disponible.');
+        }
 
         $vehicle->load(['images', 'owner']);
 
@@ -81,7 +88,10 @@ class RentalController extends Controller
         $vehicle = Vehicle::findOrFail($validated['vehicle_id']);
 
         abort_if(! auth()->user()->canRent(), 403);
-        abort_if($vehicle->owner_id === auth()->id(), 403);
+
+        if ($vehicle->owner_id === auth()->id()) {
+            return back()->with('error', 'Vous ne pouvez pas louer votre propre véhicule.');
+        }
 
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);

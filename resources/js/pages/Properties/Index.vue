@@ -13,12 +13,12 @@ interface Property {
     id: number
     title: string
     description: string
-    type: string
+    property_type: string
     city: string
     address: string
-    price_per_night: number
-    price_per_week?: number
-    price_per_month?: number
+    nightly_rate: number
+    weekly_rate?: number
+    monthly_rate?: number
     bedrooms: number
     bathrooms: number
     max_guests: number
@@ -96,7 +96,10 @@ const clearFilters = () => {
 }
 
 const getPrimaryImage = (property: Property) => {
-    const primary = property.images.find(img => img.is_primary)
+    if (!property.images) return '/images/property-placeholder.jpg'
+    const imagesArray = Array.isArray(property.images) ? property.images : Object.values(property.images)
+    if (imagesArray.length === 0) return '/images/property-placeholder.jpg'
+    const primary = imagesArray.find((img: any) => img.is_primary) || imagesArray[0]
     return primary ? `/storage/${primary.image_path}` : '/images/property-placeholder.jpg'
 }
 
@@ -223,7 +226,7 @@ const propertyTypeLabels: Record<string, string> = {
                                 class="w-full h-full object-cover"
                             />
                             <Badge class="absolute top-2 right-2 bg-green-500">
-                                {{ formatPrice(property.price_per_night) }}/nuit
+                                {{ formatPrice(property.nightly_rate) }}/nuit
                             </Badge>
                         </div>
 
@@ -238,7 +241,7 @@ const propertyTypeLabels: Record<string, string> = {
                                 </div>
                             </div>
 
-                            <p class="text-gray-600 mb-2">{{ propertyTypeLabels[property.type] || property.type }}</p>
+                            <p class="text-gray-600 mb-2">{{ propertyTypeLabels[property.property_type] || property.property_type }}</p>
                             <p class="text-gray-600 mb-3">{{ property.city }}</p>
 
                             <div class="flex justify-between text-sm text-gray-600 mb-4">

@@ -2,18 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\Vehicle;
-use App\Models\Property;
 use App\Models\Equipment;
+use App\Models\Property;
+use App\Models\Recommendation;
+use App\Models\SearchHistory;
+use App\Models\TrendingItem;
+use App\Models\User;
 use App\Models\UserActivity;
 use App\Models\UserPreference;
-use App\Models\Recommendation;
-use App\Models\TrendingItem;
-use App\Models\SearchHistory;
-use Illuminate\Support\Facades\DB;
+use App\Models\Vehicle;
 use Illuminate\Support\Collection;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AIRecommendationService
 {
@@ -72,7 +71,7 @@ class AIRecommendationService
         // Collaborative filtering - items liked by similar users
         $similarUsers = $this->findSimilarUsers($user, 'vehicle');
         $collaborativeItems = $this->getCollaborativeRecommendations($user, $similarUsers, Vehicle::class, $limit / 2);
-        
+
         foreach ($collaborativeItems as $item) {
             $recommendations->push($this->createRecommendation(
                 $user,
@@ -86,7 +85,7 @@ class AIRecommendationService
 
         // Content-based filtering - similar to what user has viewed/booked
         $contentBasedItems = $this->getContentBasedRecommendations($user, Vehicle::class, $preferences, $limit / 2);
-        
+
         foreach ($contentBasedItems as $item) {
             $recommendations->push($this->createRecommendation(
                 $user,
@@ -105,7 +104,7 @@ class AIRecommendationService
                 ->inRandomOrder()
                 ->limit($limit / 4)
                 ->get();
-            
+
             foreach ($locationItems as $item) {
                 $score = $this->calculateLocationScore($item, $preferences);
                 $recommendations->push($this->createRecommendation(
@@ -147,7 +146,7 @@ class AIRecommendationService
 
         // Price range preference
         if (isset($preferences['price_range'])) {
-            $query->whereBetween('price_per_night', $preferences['price_range']);
+            $query->whereBetween('nightly_rate', $preferences['price_range']);
         }
 
         $properties = $query->inRandomOrder()->limit($limit)->get();
@@ -249,7 +248,7 @@ class AIRecommendationService
         }
 
         $userIds = $similarUsers->pluck('user_id')->toArray();
-        
+
         // Get items that similar users interacted with but current user hasn't
         $userItems = UserActivity::where('user_id', $user->id)
             ->where('entity_type', strtolower(class_basename($modelClass)))
@@ -295,10 +294,10 @@ class AIRecommendationService
 
         // Get features of interacted items
         $items = $modelClass::whereIn('id', $recentItems)->get();
-        
+
         // Extract common features
         $commonFeatures = $this->extractCommonFeatures($items, $modelClass);
-        
+
         // Find similar items
         $query = $modelClass::query()
             ->whereNotIn('id', $recentItems)
@@ -314,14 +313,14 @@ class AIRecommendationService
         }
 
         $similarItems = $query->limit($limit)->get();
-        
+
         // Calculate similarity scores
         $recommendations = collect();
         foreach ($similarItems as $item) {
             $score = $this->calculateSimilarityScore($item, $items);
-            $recommendations->push((object)[
+            $recommendations->push((object) [
                 'id' => $item->id,
-                'score' => $score
+                'score' => $score,
             ]);
         }
 
@@ -348,7 +347,7 @@ class AIRecommendationService
 
             // Common cities
             $cities = $items->pluck('city')->unique()->take(3)->toArray();
-            if (!empty($cities)) {
+            if (! empty($cities)) {
                 $features['city'] = $cities;
             }
         }
@@ -415,16 +414,16 @@ class AIRecommendationService
             $avgPrice = $bookings->avg('daily_rate');
             $preferences['price_range'] = [
                 $avgPrice * 0.7,
-                $avgPrice * 1.3
+                $avgPrice * 1.3,
             ];
         }
 
         // Analyze location preferences
         $cities = UserActivity::where('user_id', $user->id)
             ->where('activity_type', 'view')
-            ->join('vehicles', function($join) {
+            ->join('vehicles', function ($join) {
                 $join->on('user_activities.entity_id', '=', 'vehicles.id')
-                     ->where('user_activities.entity_type', '=', 'vehicle');
+                    ->where('user_activities.entity_type', '=', 'vehicle');
             })
             ->select('vehicles.city', DB::raw('COUNT(*) as count'))
             ->groupBy('vehicles.city')
@@ -433,7 +432,7 @@ class AIRecommendationService
             ->pluck('city')
             ->toArray();
 
-        if (!empty($cities)) {
+        if (! empty($cities)) {
             $preferences['preferred_cities'] = $cities;
         }
 
@@ -499,8 +498,8 @@ class AIRecommendationService
 
         // Price match
         if (isset($preferences['price_range'])) {
-            if ($property->price_per_night >= $preferences['price_range'][0] && 
-                $property->price_per_night <= $preferences['price_range'][1]) {
+            if ($property->nightly_rate >= $preferences['price_range'][0] &&
+                $property->nightly_rate <= $preferences['price_range'][1]) {
                 $score += 0.2;
             }
         }
@@ -537,7 +536,7 @@ class AIRecommendationService
 
         // Price match
         if (isset($preferences['price_range']) && $equipment->daily_rate) {
-            if ($equipment->daily_rate >= $preferences['price_range'][0] * 0.5 && 
+            if ($equipment->daily_rate >= $preferences['price_range'][0] * 0.5 &&
                 $equipment->daily_rate <= $preferences['price_range'][1] * 0.5) {
                 $score += 0.2;
             }
@@ -550,11 +549,11 @@ class AIRecommendationService
      * Create and store a recommendation
      */
     private function createRecommendation(
-        User $user, 
-        string $entityType, 
-        int $entityId, 
-        float $score, 
-        string $type, 
+        User $user,
+        string $entityType,
+        int $entityId,
+        float $score,
+        string $type,
         string $reason
     ): Recommendation {
         return Recommendation::updateOrCreate(
@@ -590,10 +589,10 @@ class AIRecommendationService
      * Track user activity for learning
      */
     public function trackActivity(
-        User $user, 
-        string $activityType, 
-        string $entityType, 
-        int $entityId, 
+        User $user,
+        string $activityType,
+        string $entityType,
+        int $entityId,
         array $metadata = []
     ): void {
         UserActivity::create([
@@ -615,9 +614,9 @@ class AIRecommendationService
      * Update preferences from user activity
      */
     private function updatePreferencesFromActivity(
-        User $user, 
-        string $activityType, 
-        string $entityType, 
+        User $user,
+        string $activityType,
+        string $entityType,
         int $entityId
     ): void {
         $weight = $this->weights[$activityType] ?? 1;
@@ -671,7 +670,7 @@ class AIRecommendationService
         // Update weight using exponential moving average
         $alpha = 0.3; // Learning rate
         $newWeight = ($alpha * $weight / 5) + ((1 - $alpha) * $preference->weight);
-        
+
         $preference->update([
             'weight' => min($newWeight, 1.0),
             'confidence' => min($preference->confidence + 0.05, 1.0),
@@ -683,7 +682,7 @@ class AIRecommendationService
     /**
      * Get trending items
      */
-    public function getTrendingItems(string $type = 'all', string $location = null, int $limit = 10): Collection
+    public function getTrendingItems(string $type = 'all', ?string $location = null, int $limit = 10): Collection
     {
         $query = TrendingItem::where('period_date', today())
             ->where('trend_type', 'daily')
@@ -728,14 +727,14 @@ class AIRecommendationService
     /**
      * Get search suggestions based on user history and popular searches
      */
-    public function getSearchSuggestions(string $query, string $type = 'all', User $user = null): array
+    public function getSearchSuggestions(string $query, string $type = 'all', ?User $user = null): array
     {
         $suggestions = [];
 
         // Get user's recent searches if logged in
         if ($user) {
             $recentSearches = SearchHistory::where('user_id', $user->id)
-                ->where('search_query', 'LIKE', $query . '%')
+                ->where('search_query', 'LIKE', $query.'%')
                 ->where('has_interaction', true)
                 ->orderByDesc('created_at')
                 ->limit(3)
@@ -747,7 +746,7 @@ class AIRecommendationService
 
         // Get popular searches
         $popularSearches = DB::table('popular_searches')
-            ->where('search_term', 'LIKE', $query . '%')
+            ->where('search_term', 'LIKE', $query.'%')
             ->where('period_date', '>=', now()->subDays(7))
             ->orderByDesc('effectiveness_score')
             ->orderByDesc('search_count')
@@ -759,8 +758,8 @@ class AIRecommendationService
 
         // Get entity-based suggestions
         if ($type === 'all' || $type === 'vehicles') {
-            $vehicles = Vehicle::where('brand', 'LIKE', $query . '%')
-                ->orWhere('model', 'LIKE', $query . '%')
+            $vehicles = Vehicle::where('brand', 'LIKE', $query.'%')
+                ->orWhere('model', 'LIKE', $query.'%')
                 ->limit(3)
                 ->pluck(DB::raw("CONCAT(brand, ' ', model) as name"))
                 ->toArray();
@@ -777,7 +776,7 @@ class AIRecommendationService
     public function updateTrendingScores(): void
     {
         $today = today();
-        
+
         // Calculate trending for each entity type
         foreach (['vehicle', 'property', 'equipment'] as $entityType) {
             // Get activity counts for today
@@ -790,7 +789,7 @@ class AIRecommendationService
             // Group by entity
             $entityScores = [];
             foreach ($activities as $activity) {
-                if (!isset($entityScores[$activity->entity_id])) {
+                if (! isset($entityScores[$activity->entity_id])) {
                     $entityScores[$activity->entity_id] = [
                         'view_count' => 0,
                         'click_count' => 0,

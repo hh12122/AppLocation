@@ -9,13 +9,14 @@ export interface ChatNotification {
     sender_name: string
     sender_avatar?: string
     message: string
-    rental_info: {
-        id: number
-        vehicle: {
-            brand: string
-            model: string
-            year: number
-        }
+    booking_summary: {
+        type: string
+        label: string
+        title: string
+        status: string
+        dates: string
+        detail_route: string
+        item_route?: string
     }
     created_at: string
     type: string

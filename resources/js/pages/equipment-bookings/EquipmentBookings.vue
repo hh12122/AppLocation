@@ -83,11 +83,11 @@ const formatDate = (date: string) => {
     })
 }
 
-const getPrimaryImage = (equipment: EquipmentBooking['equipment']) => {
-    if (!equipment.images || equipment.images.length === 0) {
-        return '/images/equipment-placeholder.jpg'
-    }
-    const primary = equipment.images.find(img => img.is_primary)
+const getPrimaryImage = (equipment: any) => {
+    if (!equipment.images) return '/images/equipment-placeholder.jpg'
+    const imagesArray = Array.isArray(equipment.images) ? equipment.images : Object.values(equipment.images)
+    if (imagesArray.length === 0) return '/images/equipment-placeholder.jpg'
+    const primary = imagesArray.find((img: any) => img.is_primary) || imagesArray[0]
     return primary ? `/storage/${primary.image_path}` : '/images/equipment-placeholder.jpg'
 }
 

@@ -12,7 +12,7 @@ interface Property {
     address: string
     status: string
     is_available: boolean
-    price_per_night: number
+    nightly_rate: number
     bedrooms: number
     bathrooms: number
     max_guests: number
@@ -53,10 +53,10 @@ const formatPrice = (price: number) => {
 }
 
 const getPrimaryImage = (property: Property) => {
-    if (!property.images || property.images.length === 0) {
-        return '/images/property-placeholder.jpg'
-    }
-    const primary = property.images.find(img => img.is_primary)
+    if (!property.images) return '/images/property-placeholder.jpg'
+    const imagesArray = Array.isArray(property.images) ? property.images : Object.values(property.images)
+    if (imagesArray.length === 0) return '/images/property-placeholder.jpg'
+    const primary = imagesArray.find((img: any) => img.is_primary) || imagesArray[0]
     return primary ? `/storage/${primary.image_path}` : '/images/property-placeholder.jpg'
 }
 
@@ -168,7 +168,7 @@ const propertyTypeLabels: Record<string, string> = {
                                             </p>
                                             <div class="mt-2 space-y-1">
                                                 <p class="text-sm text-gray-600">
-                                                    <strong>Prix:</strong> {{ formatPrice(property.price_per_night) }}/nuit
+                                                    <strong>Prix:</strong> {{ formatPrice(property.nightly_rate) }}/nuit
                                                 </p>
                                                 <p class="text-sm text-gray-600">
                                                     🛏️ {{ property.bedrooms }} chambres • 🚿 {{ property.bathrooms }} SdB • 👥 {{ property.max_guests }} pers.

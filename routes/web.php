@@ -1,13 +1,12 @@
 <?php
 
-use App\Http\Controllers\VehicleController;
-use App\Http\Controllers\RentalController;
-use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\Admin\GeoNotificationController as AdminGeoNotificationController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\GeoNotificationController;
+use App\Http\Controllers\RentalController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Settings\NotificationPreferencesController;
-use App\Http\Controllers\Admin\GeoNotificationController as AdminGeoNotificationController;
+use App\Http\Controllers\VehicleController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -165,6 +164,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('payments/success', [PaymentController::class, 'success'])->name('payments.success');
     Route::get('payments/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
     Route::get('payments/{rental}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::get('property-payments/{booking}', [PaymentController::class, 'showPropertyBooking'])->name('property-payments.show');
 
     // API routes for payment processing
     Route::post('api/payments/stripe/create-intent', [PaymentController::class, 'createStripeIntent'])
@@ -188,6 +188,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('chat', [\App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
     Route::get('chat/{conversation}', [\App\Http\Controllers\ChatController::class, 'show'])->name('chat.show');
     Route::post('chat/rental/{rental}', [\App\Http\Controllers\ChatController::class, 'createForRental'])->name('chat.create-rental');
+    Route::post('chat/property-booking/{booking}', [\App\Http\Controllers\ChatController::class, 'createForPropertyBooking'])->name('chat.create-property-booking');
+    Route::post('chat/equipment-booking/{booking}', [\App\Http\Controllers\ChatController::class, 'createForEquipmentBooking'])->name('chat.create-equipment-booking');
     Route::post('chat/{conversation}/archive', [\App\Http\Controllers\ChatController::class, 'archive'])->name('chat.archive');
 
     // Chat API routes

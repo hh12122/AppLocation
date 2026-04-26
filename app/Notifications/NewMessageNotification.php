@@ -4,14 +4,12 @@ namespace App\Notifications;
 
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Models\User;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\BroadcastMessage;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class NewMessageNotification extends Notification
 {
-
     public function __construct(
         public Message $message,
         public Conversation $conversation
@@ -24,13 +22,15 @@ class NewMessageNotification extends Notification
 
     public function toMail($notifiable): MailMessage
     {
+        $summary = $this->conversation->booking_summary;
+
         return (new MailMessage)
-            ->subject('Nouveau message de ' . $this->message->sender->name)
-            ->greeting('Bonjour ' . $notifiable->name . ',')
-            ->line('Vous avez reçu un nouveau message de ' . $this->message->sender->name . ' concernant votre location.')
-            ->line('Message: "' . $this->message->message . '"')
+            ->subject('Nouveau message de '.$this->message->sender->name)
+            ->greeting('Bonjour '.$notifiable->name.',')
+            ->line('Vous avez reçu un nouveau message de '.$this->message->sender->name." concernant votre {$summary['label']}.")
+            ->line('Message: "'.$this->message->message.'"')
             ->action('Voir le message', route('chat.show', $this->conversation->id))
-            ->line('Merci d\'utiliser CarLocation !');
+            ->line('Merci d\'utiliser notre plateforme !');
     }
 
     public function toArray($notifiable): array
@@ -42,12 +42,7 @@ class NewMessageNotification extends Notification
             'sender_name' => $this->message->sender->name,
             'sender_avatar' => $this->message->sender->avatar,
             'message' => $this->message->message,
-            'rental_id' => $this->conversation->rental_id,
-            'vehicle_info' => [
-                'brand' => $this->conversation->rental->vehicle->brand,
-                'model' => $this->conversation->rental->vehicle->model,
-                'year' => $this->conversation->rental->vehicle->year,
-            ],
+            'booking_summary' => $this->conversation->booking_summary,
             'created_at' => $this->message->created_at,
         ];
     }
@@ -62,16 +57,9 @@ class NewMessageNotification extends Notification
             'sender_name' => $this->message->sender->name,
             'sender_avatar' => $this->message->sender->avatar,
             'message' => $this->message->message,
-            'rental_info' => [
-                'id' => $this->conversation->rental_id,
-                'vehicle' => [
-                    'brand' => $this->conversation->rental->vehicle->brand,
-                    'model' => $this->conversation->rental->vehicle->model,
-                    'year' => $this->conversation->rental->vehicle->year,
-                ]
-            ],
+            'booking_summary' => $this->conversation->booking_summary,
             'created_at' => $this->message->created_at,
-            'type' => 'new_message'
+            'type' => 'new_message',
         ]);
     }
 

@@ -6,7 +6,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, ref, onMounted } from 'vue';
-import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building, Bike, Wrench, Ship, MapPin, ClipboardList } from 'lucide-vue-next';
+import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building, Bike, Wrench, Ship, MapPin, ClipboardList, ShieldCheck, FileText, Globe } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage()
@@ -14,6 +14,7 @@ const user = computed(() => page.props.auth?.user)
 const userRole = computed(() => user.value?.user_role || 'locataire')
 const isOwner = computed(() => userRole.value === 'proprietaire' || userRole.value === 'both')
 const isRenter = computed(() => userRole.value === 'locataire' || userRole.value === 'both')
+const isAdmin = computed(() => !!user.value?.is_admin)
 const unreadMessageCount = ref(0)
 
 const fetchUnreadCount = async () => {
@@ -170,6 +171,28 @@ const mainNavItems = computed<NavItem[]>(() => {
     return items
 })
 
+const adminNavItems = computed<NavItem[]>(() => {
+    if (!isAdmin.value) return []
+
+    return [
+        {
+            title: 'Permis à vérifier',
+            href: '/admin/license-verifications',
+            icon: ShieldCheck,
+        },
+        {
+            title: 'Traductions',
+            href: '/admin/translations',
+            icon: FileText,
+        },
+        {
+            title: 'Geo-notifications',
+            href: '/admin/geo-notifications',
+            icon: Globe,
+        }
+    ]
+})
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Github Repo',
@@ -200,6 +223,7 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain v-if="isAdmin" :items="adminNavItems" label="Administration" />
         </SidebarContent>
 
         <SidebarFooter>

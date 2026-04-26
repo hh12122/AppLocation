@@ -26,19 +26,14 @@ interface User {
     avatar?: string
 }
 
-interface Vehicle {
-    id: number
-    brand: string
-    model: string
-    year: number
-}
-
-interface Rental {
-    id: number
+interface BookingSummary {
+    type: string
+    label: string
+    title: string
     status: string
-    start_date: string
-    end_date: string
-    vehicle: Vehicle
+    dates: string
+    detail_route: string
+    item_route?: string
 }
 
 interface Message {
@@ -53,7 +48,6 @@ interface Message {
 
 interface Conversation {
     id: number
-    rental: Rental
     renter: User
     owner: User
 }
@@ -62,7 +56,7 @@ interface Props {
     conversation: Conversation
     otherParticipant: User
     messages: Message[]
-    rental: Rental
+    bookingSummary: BookingSummary
 }
 
 const props = defineProps<Props>()
@@ -94,28 +88,28 @@ const sendMessage = async () => {
 
     try {
         const url = route('api.chat.send-message', props.conversation.id)
-        console.log('Sending message to URL:', url)
+
+        // Get the Echo socket ID so the server can exclude this sender from broadcast
+        const echo = (window as any).Echo
+        const socketId = echo?.socketId?.() || null
 
         const response = await axios.post(url, {
             message: messageContent,
-            message_type: 'text'
+            message_type: 'text',
+        }, {
+            headers: socketId ? { 'X-Socket-Id': socketId } : {},
         })
 
-        console.log('Message sent response:', response.data)
-
-        // Add message to UI immediately (optimistic update)
+        // Add message to UI immediately from the response
         if (response.data && response.data.message) {
             const newMessage = response.data.message
 
-            // Ensure the message has all required fields
             if (!newMessage.sender) {
                 newMessage.sender = currentUser.value
             }
 
-            // Add to messages array
             localMessages.value = [...localMessages.value, newMessage]
 
-            // Scroll to bottom after a brief delay to ensure DOM is updated
             nextTick(() => {
                 scrollToBottom()
             })
@@ -189,24 +183,30 @@ const isMessageFromCurrentUser = (message: Message) => {
     return isCurrentUser
 }
 
-const getRentalStatusLabel = (status: string) => {
+const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
         'pending': 'En attente',
         'confirmed': 'Confirmée',
         'active': 'En cours',
         'completed': 'Terminée',
-        'cancelled': 'Annulée'
+        'cancelled': 'Annulée',
+        'checked_in': 'Arrivée effectuée',
+        'checked_out': 'Départ effectué',
+        'in_use': 'En utilisation',
     }
     return labels[status] || status
 }
 
-const getRentalStatusColor = (status: string) => {
+const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
         'pending': 'bg-yellow-100 text-yellow-800',
         'confirmed': 'bg-blue-100 text-blue-800',
         'active': 'bg-green-100 text-green-800',
         'completed': 'bg-gray-100 text-gray-800',
-        'cancelled': 'bg-red-100 text-red-800'
+        'cancelled': 'bg-red-100 text-red-800',
+        'checked_in': 'bg-green-100 text-green-800',
+        'checked_out': 'bg-indigo-100 text-indigo-800',
+        'in_use': 'bg-emerald-100 text-emerald-800',
     }
     return colors[status] || 'bg-gray-100 text-gray-800'
 }
@@ -384,18 +384,18 @@ watch(localMessages, () => {
                                     {{ otherParticipant.name }}
                                 </h1>
                                 <p class="text-sm text-gray-600">
-                                    {{ rental.vehicle.year }} {{ rental.vehicle.brand }} {{ rental.vehicle.model }}
+                                    {{ bookingSummary.title }}
                                 </p>
                             </div>
                         </div>
                     </div>
 
                     <div class="flex items-center space-x-4">
-                        <Badge :class="getRentalStatusColor(rental.status)">
-                            {{ getRentalStatusLabel(rental.status) }}
+                        <Badge :class="getStatusColor(bookingSummary.status)">
+                            {{ getStatusLabel(bookingSummary.status) }}
                         </Badge>
                         <Link
-                            :href="route('rentals.show', rental.id)"
+                            :href="bookingSummary.detail_route"
                             class="text-blue-600 hover:text-blue-800 text-sm font-medium"
                         >
                             Voir la réservation
@@ -491,32 +491,35 @@ watch(localMessages, () => {
                         </div>
                     </div>
 
-                    <!-- Sidebar with rental info -->
+                    <!-- Sidebar with booking info -->
                     <div class="w-80 bg-white border-l border-gray-200 p-6">
                         <div class="space-y-6">
-                            <!-- Rental Details -->
+                            <!-- Booking Details -->
                             <Card>
                                 <CardHeader>
-                                    <CardTitle class="text-base">Détails de la location</CardTitle>
+                                    <CardTitle class="text-base">
+                                        {{ bookingSummary.type === 'rental' ? 'Détails de la location' :
+                                           bookingSummary.type === 'property_booking' ? 'Détails du séjour' :
+                                           'Détails de la réservation' }}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent class="space-y-3">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-900">Véhicule</p>
-                                        <p class="text-sm text-gray-600">
-                                            {{ rental.vehicle.year }} {{ rental.vehicle.brand }} {{ rental.vehicle.model }}
+                                        <p class="text-sm font-medium text-gray-900">
+                                            {{ bookingSummary.type === 'rental' ? 'Véhicule' :
+                                               bookingSummary.type === 'property_booking' ? 'Propriété' :
+                                               'Matériel' }}
                                         </p>
+                                        <p class="text-sm text-gray-600">{{ bookingSummary.title }}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm font-medium text-gray-900">Période</p>
-                                        <p class="text-sm text-gray-600">
-                                            {{ new Date(rental.start_date).toLocaleDateString('fr-FR') }} -
-                                            {{ new Date(rental.end_date).toLocaleDateString('fr-FR') }}
-                                        </p>
+                                        <p class="text-sm text-gray-600">{{ bookingSummary.dates }}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm font-medium text-gray-900">Statut</p>
-                                        <Badge :class="getRentalStatusColor(rental.status)" class="text-xs">
-                                            {{ getRentalStatusLabel(rental.status) }}
+                                        <Badge :class="getStatusColor(bookingSummary.status)" class="text-xs">
+                                            {{ getStatusLabel(bookingSummary.status) }}
                                         </Badge>
                                     </div>
                                 </CardContent>
@@ -529,25 +532,20 @@ watch(localMessages, () => {
                                 </CardHeader>
                                 <CardContent class="space-y-2">
                                     <Link
-                                        :href="route('rentals.show', rental.id)"
+                                        :href="bookingSummary.detail_route"
                                         class="block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium"
                                     >
                                         Voir la réservation
                                     </Link>
                                     <Link
-                                        :href="route('vehicles.show', rental.vehicle.id)"
+                                        v-if="bookingSummary.item_route"
+                                        :href="bookingSummary.item_route"
                                         class="block w-full text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm font-medium"
                                     >
-                                        Voir le véhicule
+                                        {{ bookingSummary.type === 'rental' ? 'Voir le véhicule' :
+                                           bookingSummary.type === 'property_booking' ? 'Voir la propriété' :
+                                           'Voir le matériel' }}
                                     </Link>
-                                    <a
-                                        v-if="['confirmed', 'active', 'completed'].includes(rental.status)"
-                                        :href="route('rentals.contract', rental.id)"
-                                        target="_blank"
-                                        class="block w-full text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm font-medium"
-                                    >
-                                        📄 Contrat PDF
-                                    </a>
                                 </CardContent>
                             </Card>
 

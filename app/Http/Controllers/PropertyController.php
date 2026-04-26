@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Favorite;
 use App\Models\Property;
 use App\Models\PropertyImage;
 use Carbon\Carbon;
@@ -16,7 +17,7 @@ class PropertyController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Property::query()->active()->with(['owner', 'primaryImage']);
+        $query = Property::query()->active()->with(['owner', 'images']);
 
         // Apply filters
         $this->applyFilters($query, $request);
@@ -142,7 +143,7 @@ class PropertyController extends Controller
         return Inertia::render('properties/Show', [
             'property' => $property,
             'similarProperties' => $similarProperties,
-            'isFavorite' => Auth::check() ? Auth::user()->favoriteVehicles()->where('property_id', $property->id)->exists() : false,
+            'isFavorite' => Auth::check() ? Favorite::where('user_id', Auth::id())->where('favoritable_type', Property::class)->where('favoritable_id', $property->id)->exists() : false,
         ]);
     }
 

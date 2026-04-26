@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Equipment;
 use App\Models\EquipmentBooking;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,20 +14,30 @@ use Inertia\Response;
 
 class EquipmentBookingController extends Controller
 {
-    public function create(Equipment $equipment): Response
+    public function create(Equipment $equipment): Response|RedirectResponse
     {
         $equipment->load(['owner:id,name,email,rating,rating_count', 'images']);
+
+        // Prevent booking own equipment
+        if ($equipment->owner_id === Auth::id()) {
+            return redirect()->route('equipment.show', $equipment)
+                ->with('error', 'Vous ne pouvez pas réserver votre propre matériel.');
+        }
+
+        $categoryConfig = Equipment::getCategoryConfig()[$equipment->category] ?? null;
 
         // Check if user can book equipment
         if (! Auth::user()->hasValidLicense()) {
             return Inertia::render('equipment-bookings/Create', [
                 'equipment' => $equipment,
+                'categoryConfig' => $categoryConfig,
                 'licenseRequired' => true,
             ]);
         }
 
         return Inertia::render('equipment-bookings/Create', [
             'equipment' => $equipment,
+            'categoryConfig' => $categoryConfig,
         ]);
     }
 
@@ -34,65 +45,73 @@ class EquipmentBookingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user has valid license
+        if ($equipment->owner_id === $user->id) {
+            return back()->with('error', 'Vous ne pouvez pas réserver votre propre matériel.');
+        }
+
         if (! $user->hasValidLicense()) {
             return redirect()->route('license.verification')
                 ->with('error', 'Vous devez avoir un permis de conduire vérifié pour louer du matériel.');
         }
 
-        // Check if equipment is available
         if (! $equipment->is_available) {
             return back()->with('error', 'Ce matériel n\'est plus disponible.');
         }
 
         $validated = $request->validate([
-            'start_date' => 'required|date|after:today',
-            'end_date' => 'required|date|after:start_date',
-            'pickup_location' => 'nullable|string|max:500',
+            'start_datetime' => 'required|date|after:now',
+            'end_datetime' => 'required|date|after:start_datetime',
+            'duration_unit' => 'required|in:hour,day,week,month',
+            'pickup_address' => 'nullable|string|max:500',
+            'delivery_address' => 'nullable|string|max:500',
             'special_requests' => 'nullable|string|max:1000',
-            'quantity' => 'required|integer|min:1|max:'.$equipment->max_quantity,
-            'rental_unit' => 'required|in:hour,day,week,month',
+            'usage_purpose' => 'nullable|string|max:500',
         ]);
 
-        // Calculate duration and total price
-        $startDate = new \DateTime($validated['start_date']);
-        $endDate = new \DateTime($validated['end_date']);
+        $startDate = Carbon::parse($validated['start_datetime']);
+        $endDate = Carbon::parse($validated['end_datetime']);
+        $unit = $validated['duration_unit'];
 
-        $duration = $this->calculateDuration($startDate, $endDate, $validated['rental_unit']);
-        $basePrice = $equipment->getPrice($validated['rental_unit']);
-        $totalPrice = $basePrice * $duration * $validated['quantity'];
+        $duration = $this->calculateDuration($startDate, $endDate, $unit);
+        $unitRate = $equipment->{($unit === 'hour' ? 'hourly_rate' : ($unit === 'day' ? 'daily_rate' : ($unit === 'week' ? 'weekly_rate' : 'monthly_rate')))} ?? 0;
+        $subtotal = $unitRate * $duration;
 
-        // Apply discounts if any
-        $discountPercent = $this->calculateDiscount($duration, $validated['rental_unit']);
-        $discountAmount = $totalPrice * ($discountPercent / 100);
-        $finalPrice = $totalPrice - $discountAmount;
-
-        // Calculate fees
-        $platformFee = $finalPrice * 0.05; // 5% platform fee
-        $totalWithFees = $finalPrice + $platformFee;
+        $serviceFee = $subtotal * 0.05;
+        $cleaningFee = $equipment->cleaning_fee ?? 0;
+        $deliveryFee = $validated['delivery_address'] ? ($equipment->delivery_fee ?? 0) : 0;
+        $totalAmount = $subtotal + $serviceFee + $cleaningFee + $deliveryFee;
+        $ownerPayout = $subtotal - $serviceFee;
 
         $booking = EquipmentBooking::create([
             'equipment_id' => $equipment->id,
             'renter_id' => $user->id,
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'pickup_location' => $validated['pickup_location'],
+            'start_datetime' => $startDate,
+            'end_datetime' => $endDate,
+            'duration_value' => $duration,
+            'duration_unit' => $unit,
+            'unit_rate' => $unitRate,
+            'subtotal' => $subtotal,
+            'security_deposit' => $equipment->security_deposit ?? 0,
+            'cleaning_fee' => $cleaningFee,
+            'delivery_fee' => $deliveryFee,
+            'service_fee' => $serviceFee,
+            'total_amount' => $totalAmount,
+            'owner_payout' => $ownerPayout,
+            'fulfillment_type' => $validated['delivery_address'] ? 'delivery' : 'pickup',
+            'pickup_address' => $validated['pickup_address'] ?? $equipment->address,
+            'delivery_address' => $validated['delivery_address'],
             'special_requests' => $validated['special_requests'],
-            'quantity' => $validated['quantity'],
-            'rental_unit' => $validated['rental_unit'],
-            'duration' => $duration,
-            'base_price' => $basePrice,
-            'total_price' => $finalPrice,
-            'platform_fee' => $platformFee,
-            'total_with_fees' => $totalWithFees,
-            'discount_percent' => $discountPercent,
-            'discount_amount' => $discountAmount,
-            'owner_payout' => $finalPrice - ($finalPrice * 0.05), // Owner gets 95%
-            'status' => 'pending',
+            'usage_purpose' => $validated['usage_purpose'],
+            'status' => $equipment->instant_booking ? 'confirmed' : 'pending',
+            'payment_status' => 'pending',
         ]);
 
+        $message = $equipment->instant_booking
+            ? 'Réservation confirmée instantanément !'
+            : 'Votre demande de réservation a été envoyée au propriétaire.';
+
         return redirect()->route('equipment-bookings.show', $booking)
-            ->with('success', 'Votre demande de réservation a été envoyée au propriétaire.');
+            ->with('success', $message);
     }
 
     public function show(EquipmentBooking $booking): Response
@@ -288,19 +307,20 @@ class EquipmentBookingController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        $statsRaw = EquipmentBooking::whereHas('equipment', function ($q) use ($user) {
+            $q->where('owner_id', $user->id);
+        })->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+            COUNT(CASE WHEN status = 'in_use' THEN 1 END) as active,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed
+        ")->first();
+
         $stats = [
-            'total' => EquipmentBooking::whereHas('equipment', function ($q) use ($user) {
-                $q->where('owner_id', $user->id);
-            })->count(),
-            'pending' => EquipmentBooking::whereHas('equipment', function ($q) use ($user) {
-                $q->where('owner_id', $user->id);
-            })->where('status', 'pending')->count(),
-            'active' => EquipmentBooking::whereHas('equipment', function ($q) use ($user) {
-                $q->where('owner_id', $user->id);
-            })->where('status', 'in_use')->count(),
-            'completed' => EquipmentBooking::whereHas('equipment', function ($q) use ($user) {
-                $q->where('owner_id', $user->id);
-            })->where('status', 'completed')->count(),
+            'total' => $statsRaw->total ?? 0,
+            'pending' => $statsRaw->pending ?? 0,
+            'active' => $statsRaw->active ?? 0,
+            'completed' => $statsRaw->completed ?? 0,
         ];
 
         return Inertia::render('equipment-bookings/EquipmentBookings', [
@@ -309,15 +329,15 @@ class EquipmentBookingController extends Controller
         ]);
     }
 
-    private function calculateDuration(\DateTime $startDate, \DateTime $endDate, string $unit): int
+    private function calculateDuration(Carbon $startDate, Carbon $endDate, string $unit): int
     {
-        $interval = $startDate->diff($endDate);
+        $diffInHours = $startDate->diffInHours($endDate);
 
         return match ($unit) {
-            'hour' => ($interval->days * 24) + $interval->h,
-            'day' => max(1, $interval->days),
-            'week' => max(1, ceil($interval->days / 7)),
-            'month' => max(1, $interval->m + ($interval->y * 12)),
+            'hour' => max(1, $diffInHours),
+            'day' => max(1, $startDate->diffInDays($endDate)),
+            'week' => max(1, ceil($startDate->diffInDays($endDate) / 7)),
+            'month' => max(1, $startDate->diffInMonths($endDate)),
             default => 1
         };
     }

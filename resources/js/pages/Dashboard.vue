@@ -32,7 +32,7 @@ interface PropertyEntity {
     id: number
     title: string
     property_type: string
-    price_per_night: number
+    nightly_rate: number
     city: string
     images?: Array<{ image_path: string }>
 }

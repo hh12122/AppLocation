@@ -82,10 +82,10 @@ const formatDate = (date: string) => {
 }
 
 const getPrimaryImage = (property: PropertyBooking['property']) => {
-    if (!property.images || property.images.length === 0) {
-        return '/images/property-placeholder.jpg'
-    }
-    const primary = property.images.find(img => img.is_primary)
+    if (!property.images) return '/images/property-placeholder.jpg'
+    const imagesArray = Array.isArray(property.images) ? property.images : Object.values(property.images)
+    if (imagesArray.length === 0) return '/images/property-placeholder.jpg'
+    const primary = imagesArray.find((img: any) => img.is_primary) || imagesArray[0]
     return primary ? `/storage/${primary.image_path}` : '/images/property-placeholder.jpg'
 }
 

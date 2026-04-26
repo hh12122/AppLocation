@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
-use Carbon\Carbon;
 
 class EquipmentBooking extends Model
 {
@@ -132,6 +132,11 @@ class EquipmentBooking extends Model
         return $this->hasMany(Payment::class, 'rental_id'); // Reusing existing payment system
     }
 
+    public function conversation()
+    {
+        return $this->morphOne(Conversation::class, 'conversable');
+    }
+
     /**
      * Get reviews for this booking.
      */
@@ -212,7 +217,7 @@ class EquipmentBooking extends Model
 
         $unit = $unitLabels[$this->duration_unit] ?? $this->duration_unit;
         $plural = $this->duration_value > 1 ? 's' : '';
-        
+
         return "{$this->duration_value} {$unit}{$plural}";
     }
 
@@ -221,7 +226,7 @@ class EquipmentBooking extends Model
      */
     public function canBeCancelled(): bool
     {
-        return in_array($this->status, ['pending', 'confirmed', 'preparing']) && 
+        return in_array($this->status, ['pending', 'confirmed', 'preparing']) &&
                $this->start_datetime > now()->addHours(2); // 2-hour cancellation window
     }
 
@@ -230,7 +235,7 @@ class EquipmentBooking extends Model
      */
     public function canBeConfirmed(): bool
     {
-        return $this->status === 'pending' && 
+        return $this->status === 'pending' &&
                $this->expires_at > now();
     }
 
@@ -239,7 +244,7 @@ class EquipmentBooking extends Model
      */
     public function canBeDelivered(): bool
     {
-        return $this->status === 'ready' && 
+        return $this->status === 'ready' &&
                $this->delivery_time <= now()->addHours(2) &&
                $this->payment_status === 'paid';
     }
@@ -257,9 +262,9 @@ class EquipmentBooking extends Model
      */
     public function canBeReviewed(): bool
     {
-        return $this->status === 'completed' && 
+        return $this->status === 'completed' &&
                $this->review_deadline > now() &&
-               !$this->renter_reviewed;
+               ! $this->renter_reviewed;
     }
 
     /**
@@ -392,7 +397,7 @@ class EquipmentBooking extends Model
     public function calculateRefund(): float
     {
         $hoursUntilStart = now()->diffInHours($this->start_datetime, false);
-        
+
         // Basic cancellation policy based on time until rental
         if ($hoursUntilStart >= 24) {
             return $this->total_amount; // Full refund
@@ -408,7 +413,7 @@ class EquipmentBooking extends Model
      */
     public function getReferenceAttribute(): string
     {
-        return 'EB' . str_pad($this->id, 6, '0', STR_PAD_LEFT);
+        return 'EB'.str_pad($this->id, 6, '0', STR_PAD_LEFT);
     }
 
     // Scopes
@@ -451,7 +456,7 @@ class EquipmentBooking extends Model
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('start_datetime', '>', now())
-                    ->whereIn('status', ['confirmed', 'preparing']);
+            ->whereIn('status', ['confirmed', 'preparing']);
     }
 
     /**
@@ -460,8 +465,8 @@ class EquipmentBooking extends Model
     public function scopeCurrent(Builder $query): Builder
     {
         return $query->where('start_datetime', '<=', now())
-                    ->where('end_datetime', '>=', now())
-                    ->whereIn('status', ['delivered', 'in_use']);
+            ->where('end_datetime', '>=', now())
+            ->whereIn('status', ['delivered', 'in_use']);
     }
 
     /**
