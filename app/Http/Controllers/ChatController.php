@@ -229,7 +229,7 @@ class ChatController extends Controller
             $otherParticipant->notify(new NewMessageNotification($message, $conversation));
         } catch (\Exception $e) {
             // Log the error but don't break the request
-            \Illuminate\Support\Facades\Log::error('Broadcasting or notification failed: ' . $e->getMessage());
+            \Log::error('Broadcasting or notification failed: ' . $e->getMessage());
         }
     }
 

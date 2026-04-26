@@ -16,11 +16,14 @@ if (token) {
 
 // Create Echo instance with proper configuration
 const echo = new Echo({
-    broadcaster: 'pusher',
-    key: import.meta.env.VITE_PUSHER_APP_KEY,
-    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-    forceTLS: true,
-    encrypted: true,
+    broadcaster: 'reverb',
+    key: import.meta.env.VITE_REVERB_APP_KEY,
+    wsHost: import.meta.env.VITE_REVERB_HOST,
+    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
+    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+    forceTLS: false, // Force false for local dev to avoid WSS errors
+    enabledTransports: ['ws'],
+    disableStats: true,
 
     // Use default authEndpoint (Laravel Echo will handle it properly)
     authEndpoint: '/broadcasting/auth',
@@ -32,6 +35,8 @@ const echo = new Echo({
                 axios.post('/broadcasting/auth', {
                     socket_id: socketId,
                     channel_name: channel.name
+                }, {
+                    withCredentials: true
                 })
                     .then(response => {
                     callback(null, response.data)

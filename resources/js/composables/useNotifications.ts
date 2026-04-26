@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 
 export interface ChatNotification {
     id: string
@@ -91,13 +92,13 @@ export function useNotifications() {
     
     const setupEchoListeners = () => {
         const echo = (window as any).Echo
-        const user = (window as any).$page?.props?.auth?.user
-        
+        const page = usePage()
+        const user = page.props.auth?.user
+
         if (echo && user) {
-            // Listen for new message notifications on user's private channel
             echo.private(`App.Models.User.${user.id}`)
-                .listen('.notification.new-message', (e: ChatNotification) => {
-                    addNotification(e)
+                .notification((notification: ChatNotification) => {
+                    addNotification(notification)
                 })
         }
     }

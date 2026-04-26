@@ -27,6 +27,7 @@ interface Rental {
             id: number
             name: string
             rating: number
+            phone?: string
         }
     }
 }
@@ -227,13 +228,13 @@ const stats = {
                                         >
                                             Voir véhicule
                                         </Link>
-                                        <span
+                                        <a
                                             v-if="rental.vehicle.owner.phone"
-                                            class="text-purple-600 hover:text-purple-800 text-sm font-medium cursor-pointer"
-                                            @click="window.open(`tel:${rental.vehicle.owner.phone}`)"
+                                            :href="`tel:${rental.vehicle.owner.phone}`"
+                                            class="text-purple-600 hover:text-purple-800 text-sm font-medium"
                                         >
                                             Contacter propriétaire
-                                        </span>
+                                        </a>
                                     </div>
                                 </div>
                             </div>

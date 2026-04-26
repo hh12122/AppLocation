@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
+import { computed, onMounted, onUnmounted } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -47,12 +47,16 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const page = usePage()
+const currentUser = computed(() => page.props.auth?.user)
+
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 const formatLastMessageTime = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
+
     if (diffInHours < 1) {
         return 'Il y a moins d\'une heure'
     } else if (diffInHours < 24) {
@@ -75,55 +79,61 @@ const hasUnreadMessages = computed(() => {
 const totalUnreadCount = computed(() => {
     return props.conversations.reduce((sum, c) => sum + c.unread_count, 0)
 })
-
-// Current user for Echo channel
-const currentUser = computed(() => (window as any).page?.props?.auth?.user || page.props.auth.user)
-import { usePage } from '@inertiajs/vue3'
-import { onMounted, onUnmounted } from 'vue'
-
-const page = usePage()
-
 onMounted(() => {
     if (currentUser.value) {
         // Subscribe to user's private channel for notifications
         (window as any).Echo.private(`App.Models.User.${currentUser.value.id}`)
-            .listen('.notification.new-message', (e: any) => {
-                console.log('New message notification received:', e)
+            .notification((notification: any) => {
+                console.log('Notification received via Echo:', notification)
                 
-                // Find potential existing conversation
-                const conversationIndex = props.conversations.findIndex(c => c.id === e.conversation_id)
-                
-                if (conversationIndex !== -1) {
-                    // Update existing conversation
-                    const conversation = props.conversations[conversationIndex]
-                    conversation.unread_count++
-                    conversation.last_message_at = new Date().toISOString()
-                    conversation.latest_message = [{
-                        id: e.message_id,
-                        message: e.message,
-                        created_at: new Date().toISOString(),
-                        sender: {
-                            id: e.sender_id,
-                            name: e.sender_name,
-                            avatar: e.sender_avatar
-                        }
-                    }]
+                // Only handle new_message notifications
+                if (notification.type === 'new_message' || notification.type === 'notification.new-message') {
+                    // Find potential existing conversation
+                    const conversationIndex = props.conversations.findIndex(c => c.id === notification.conversation_id)
                     
-                    // Move to top
-                    const updatedConversation = props.conversations.splice(conversationIndex, 1)[0]
-                    props.conversations.unshift(updatedConversation)
-                } else {
-                    // For completely new conversations, we might want to reload or fetch
-                    // For now, let's just reload to get the new conversation
-                    router.reload({ only: ['conversations'] })
+                    if (conversationIndex !== -1) {
+                        // Update existing conversation
+                        const conversation = props.conversations[conversationIndex]
+                        conversation.unread_count++
+                        conversation.last_message_at = new Date().toISOString()
+                        conversation.latest_message = [{
+                            id: notification.message_id,
+                            message: notification.message,
+                            created_at: new Date().toISOString(),
+                            sender: {
+                                id: notification.sender_id,
+                                name: notification.sender_name,
+                                avatar: notification.sender_avatar
+                            }
+                        }]
+                        
+                        // Move to top
+                        const updatedConversation = props.conversations.splice(conversationIndex, 1)[0]
+                        props.conversations.unshift(updatedConversation)
+                    } else {
+                        // For completely new conversations, reload to get the new conversation
+                        router.reload({ only: ['conversations'] })
+                    }
                 }
             })
+
+        // Fallback: periodic refresh every 30 seconds
+        refreshInterval = setInterval(() => {
+            router.reload({ only: ['conversations'] })
+        }, 30000)
     }
 })
 
 onUnmounted(() => {
     if (currentUser.value) {
-        (window as any).Echo.leave(`App.Models.User.${currentUser.value.id}`)
+        const echo = (window as any).Echo
+        if (echo) {
+            echo.leave(`App.Models.User.${currentUser.value.id}`)
+        }
+    }
+    if (refreshInterval) {
+        clearInterval(refreshInterval)
+        refreshInterval = null
     }
 })
 </script>

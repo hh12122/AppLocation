@@ -287,7 +287,7 @@ onMounted(() => {
             // Listen for incoming messages
             conversationChannel.listen('.message.sent', (e: any) => {
                 console.log('📨 Received message via Echo:', e)
-
+                
                 // Check if message already exists (prevent duplicates)
                 const messageExists = localMessages.value.some(m => m.id === e.message.id)
                 if (!messageExists) {

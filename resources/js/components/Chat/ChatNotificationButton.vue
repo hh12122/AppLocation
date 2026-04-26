@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { Link, usePage } from '@inertiajs/vue3'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 const unreadCount = ref(0)
 const isLoading = ref(false)
+const page = usePage()
 
 const hasUnreadMessages = computed(() => unreadCount.value > 0)
 
+const userId = computed(() => page.props.auth?.user?.id)
+
 const fetchUnreadCount = async () => {
     if (isLoading.value) return
-    
+
     isLoading.value = true
     try {
         const response = await fetch(route('api.chat.unread-count'))
@@ -28,15 +31,20 @@ const fetchUnreadCount = async () => {
 
 onMounted(() => {
     fetchUnreadCount()
-    
-    // Set up real-time updates for unread count
+
     const echo = (window as any).Echo
-    if (echo) {
-        // Listen for new messages on any conversation the user participates in
-        echo.private(`App.Models.User.${(window as any).$page?.props?.auth?.user?.id}`)
+    if (echo && userId.value) {
+        echo.private(`App.Models.User.${userId.value}`)
             .notification(() => {
                 fetchUnreadCount()
             })
+    }
+})
+
+onUnmounted(() => {
+    const echo = (window as any).Echo
+    if (echo && userId.value) {
+        echo.leave(`App.Models.User.${userId.value}`)
     }
 })
 </script>
