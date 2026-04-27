@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
-import NavUser from '@/components/NavUser.vue';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, ref, onMounted } from 'vue';
-import { BookOpen, Car, Folder, LayoutGrid, Search, Calendar, Heart, CreditCard, MessageSquare, Users, Home, Building, Bike, Wrench, Ship, MapPin, ClipboardList, ShieldCheck, FileText, Globe } from 'lucide-vue-next';
+import { Car, LayoutGrid, Calendar, Heart, CreditCard, MessageSquare, Home, Building, Bike, Wrench, Ship, MapPin, ClipboardList, ShieldCheck, FileText, Globe } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage()
@@ -156,11 +154,11 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: '/favorites',
             icon: Heart,
         },
-        {
+       /*  {
             title: 'Parrainage',
             href: '/referrals',
             icon: Users,
-        },
+        }, */
         {
             title: 'Mes paiements',
             href: '/payments',
@@ -185,26 +183,14 @@ const adminNavItems = computed<NavItem[]>(() => {
             href: '/admin/translations',
             icon: FileText,
         },
-        {
+           /*{
             title: 'Geo-notifications',
             href: '/admin/geo-notifications',
             icon: Globe,
-        }
+        }   */
     ]
 })
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Github Repo',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
 </script>
 
 <template>
@@ -225,12 +211,6 @@ const footerNavItems: NavItem[] = [
             <NavMain :items="mainNavItems" />
             <NavMain v-if="isAdmin" :items="adminNavItems" label="Administration" />
         </SidebarContent>
-
-        <SidebarFooter>
-            <div class="px-4 py-2 text-xs text-muted-foreground">Role: {{ userRole }}</div>
-            <NavFooter :items="footerNavItems" />
-            <NavUser />
-        </SidebarFooter>
     </Sidebar>
     <slot />
 </template>

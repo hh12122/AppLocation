@@ -60,7 +60,7 @@ onUnmounted(() => {
 <template>
     <teleport to="body">
         <transition leave-active-class="duration-200">
-            <div v-show="show" class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50">
+            <div v-show="show" class="fixed inset-0 z-50">
                 <transition
                     enter-active-class="ease-out duration-300"
                     enter-from-class="opacity-0"
@@ -70,26 +70,29 @@ onUnmounted(() => {
                     leave-to-class="opacity-0"
                 >
                     <div v-show="show" class="fixed inset-0 transform transition-all" @click="close">
-                        <div class="absolute inset-0 bg-gray-500 opacity-75" />
+                        <div class="absolute inset-0 bg-gray-500/75 dark:bg-gray-900/75" />
                     </div>
                 </transition>
 
-                <transition
-                    enter-active-class="ease-out duration-300"
-                    enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enter-to-class="opacity-100 translate-y-0 sm:scale-100"
-                    leave-active-class="ease-in duration-200"
-                    leave-from-class="opacity-100 translate-y-0 sm:scale-100"
-                    leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                >
-                    <div
-                        v-show="show"
-                        class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:mx-auto"
-                        :class="maxWidthClass"
+                <div class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0">
+                    <transition
+                        enter-active-class="ease-out duration-300"
+                        enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        enter-to-class="opacity-100 translate-y-0 sm:scale-100"
+                        leave-active-class="ease-in duration-200"
+                        leave-from-class="opacity-100 translate-y-0 sm:scale-100"
+                        leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     >
-                        <slot v-if="show" />
-                    </div>
-                </transition>
+                        <div
+                            v-show="show"
+                            class="mb-6 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:mx-auto relative"
+                            :class="maxWidthClass"
+                            @click.stop
+                        >
+                            <slot v-if="show" />
+                        </div>
+                    </transition>
+                </div>
             </div>
         </transition>
     </teleport>

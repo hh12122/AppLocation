@@ -1,11 +1,11 @@
 <template>
-    <Head title="Geo-Notifications Management" />
-    
+    <Head title="Gestion des Géo-Notifications" />
+
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                    Geo-Notifications Management
+                    Gestion des Géo-Notifications
                 </h2>
                 <div class="flex items-center space-x-3">
                     <button
@@ -19,7 +19,7 @@
                         class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
                     >
                         <PlusIcon class="h-4 w-4 inline mr-2" />
-                        Create Notification
+                        Créer une notification
                     </Link>
                 </div>
             </div>
@@ -35,7 +35,7 @@
                                 <BellIcon class="h-6 w-6 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Notifications</p>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total notifications</p>
                                 <p class="text-2xl font-semibold text-gray-900 dark:text-white">
                                     {{ statistics.total_notifications?.toLocaleString() ?? 0 }}
                                 </p>
@@ -49,7 +49,7 @@
                                 <CheckCircleIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Active</p>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Actives</p>
                                 <p class="text-2xl font-semibold text-gray-900 dark:text-white">
                                     {{ statistics.active_notifications?.toLocaleString() ?? 0 }}
                                 </p>
@@ -63,7 +63,7 @@
                                 <ClockIcon class="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Sent Today</p>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Envoyées aujourd'hui</p>
                                 <p class="text-2xl font-semibold text-gray-900 dark:text-white">
                                     {{ statistics.sent_today?.toLocaleString() ?? 0 }}
                                 </p>
@@ -77,7 +77,7 @@
                                 <UsersIcon class="h-6 w-6 text-purple-600 dark:text-purple-400" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Users with Location</p>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Utilisateurs localisés</p>
                                 <p class="text-2xl font-semibold text-gray-900 dark:text-white">
                                     {{ statistics.users_with_location?.toLocaleString() ?? 0 }}
                                 </p>
@@ -96,7 +96,7 @@
                                     type="text"
                                     v-model="searchForm.search"
                                     @input="debouncedSearch"
-                                    placeholder="Search notifications..."
+                                    placeholder="Rechercher des notifications..."
                                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-900"
                                 />
                             </div>
@@ -107,12 +107,12 @@
                                 @change="applyFilters"
                                 class="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-900"
                             >
-                                <option value="">All Statuses</option>
-                                <option value="pending">Pending</option>
-                                <option value="sent">Sent</option>
-                                <option value="read">Read</option>
-                                <option value="clicked">Clicked</option>
-                                <option value="failed">Failed</option>
+                                <option value="">Tous les statuts</option>
+                                <option value="pending">En attente</option>
+                                <option value="sent">Envoyé</option>
+                                <option value="read">Lu</option>
+                                <option value="clicked">Cliqué</option>
+                                <option value="failed">Échoué</option>
                             </select>
                             
                             <!-- Type Filter -->
@@ -121,13 +121,13 @@
                                 @change="applyFilters"
                                 class="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-900"
                             >
-                                <option value="">All Types</option>
-                                <option value="nearby_rental">Nearby Rental</option>
-                                <option value="pickup_reminder">Pickup Reminder</option>
-                                <option value="area_alert">Area Alert</option>
-                                <option value="promotional">Promotional</option>
-                                <option value="new_listing">New Listing</option>
-                                <option value="price_drop">Price Drop</option>
+                                <option value="">Tous les types</option>
+                                <option value="nearby_rental">Location à proximité</option>
+                                <option value="pickup_reminder">Rappel de retrait</option>
+                                <option value="area_alert">Alerte de zone</option>
+                                <option value="promotional">Promotionnel</option>
+                                <option value="new_listing">Nouvelle annonce</option>
+                                <option value="price_drop">Baisse de prix</option>
                             </select>
                         </div>
                     </div>
@@ -140,32 +140,32 @@
                         <div v-if="selectedNotifications.length > 0" class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-blue-800 dark:text-blue-200">
-                                    {{ selectedNotifications.length }} notification(s) selected
+                                    {{ selectedNotifications.length }} notification(s) sélectionnée(s)
                                 </span>
                                 <div class="flex items-center space-x-2">
                                     <button
                                         @click="bulkAction('activate')"
                                         class="px-3 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors"
                                     >
-                                        Activate
+                                        Activer
                                     </button>
                                     <button
                                         @click="bulkAction('deactivate')"
                                         class="px-3 py-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg transition-colors"
                                     >
-                                        Deactivate
+                                        Désactiver
                                     </button>
                                     <button
                                         @click="bulkAction('process')"
                                         class="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors"
                                     >
-                                        Process
+                                        Traiter
                                     </button>
                                     <button
                                         @click="bulkAction('delete')"
                                         class="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-800 rounded-lg transition-colors"
                                     >
-                                        Delete
+                                        Supprimer
                                     </button>
                                 </div>
                             </div>
@@ -191,13 +191,13 @@
                                             Type
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            Status
+                                            Statut
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            Location
+                                            Emplacement
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            Created
+                                            Créée le
                                         </th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Actions
@@ -240,7 +240,7 @@
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="text-sm text-gray-900 dark:text-white">
-                                                {{ notification.location_name || 'Unknown' }}
+                                                {{ notification.location_name || 'Inconnu' }}
                                             </div>
                                             <div class="text-xs text-gray-500 dark:text-gray-400">
                                                 {{ formatCoordinates(notification.latitude, notification.longitude) }}
@@ -285,20 +285,20 @@
                                         :href="notifications.prev_page_url"
                                         class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                                     >
-                                        Previous
+                                        Précédent
                                     </Link>
                                     <Link
                                         v-if="notifications.next_page_url"
                                         :href="notifications.next_page_url"
                                         class="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                                     >
-                                        Next
+                                        Suivant
                                     </Link>
                                 </div>
                                 <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                                     <div>
                                         <p class="text-sm text-gray-700 dark:text-gray-300">
-                                            Showing {{ notifications.from }} to {{ notifications.to }} of {{ notifications.total }} results
+                                            Affichage de {{ notifications.from }} à {{ notifications.to }} sur {{ notifications.total }} résultats
                                         </p>
                                     </div>
                                     <div class="flex space-x-1">
@@ -434,7 +434,7 @@ const toggleSelectAll = (event: Event) => {
 const bulkAction = (action: string) => {
     if (selectedNotifications.value.length === 0) return
 
-    const confirmed = confirm(`Are you sure you want to ${action} ${selectedNotifications.value.length} notification(s)?`)
+    const confirmed = confirm(`Êtes-vous sûr de vouloir ${action === 'activate' ? 'activer' : action === 'deactivate' ? 'désactiver' : action === 'process' ? 'traiter' : 'supprimer'} ${selectedNotifications.value.length} notification(s) ?`)
     if (!confirmed) return
 
     router.post(route('admin.geo-notifications.bulk-action'), {
@@ -448,7 +448,7 @@ const bulkAction = (action: string) => {
 }
 
 const deleteNotification = (id: number) => {
-    const confirmed = confirm('Are you sure you want to delete this notification?')
+    const confirmed = confirm('Êtes-vous sûr de vouloir supprimer cette notification ?')
     if (!confirmed) return
 
     router.delete(route('admin.geo-notifications.destroy', id))
@@ -478,26 +478,26 @@ const getStatusBadgeClass = (status: string) => {
 }
 
 const getTypeLabel = (type: string) => {
-    const labels = {
-        nearby_rental: 'Nearby Rental',
-        pickup_reminder: 'Pickup Reminder',
-        area_alert: 'Area Alert',
-        promotional: 'Promotional',
-        new_listing: 'New Listing',
-        price_drop: 'Price Drop',
+    const labels: Record<string, string> = {
+        nearby_rental: 'Location à proximité',
+        pickup_reminder: 'Rappel de retrait',
+        area_alert: 'Alerte de zone',
+        promotional: 'Promotionnel',
+        new_listing: 'Nouvelle annonce',
+        price_drop: 'Baisse de prix',
     }
-    return labels[type as keyof typeof labels] || type
+    return labels[type] || type
 }
 
 const getStatusLabel = (status: string) => {
-    const labels = {
-        pending: 'Pending',
-        sent: 'Sent',
-        read: 'Read',
-        clicked: 'Clicked',
-        failed: 'Failed',
+    const labels: Record<string, string> = {
+        pending: 'En attente',
+        sent: 'Envoyé',
+        read: 'Lu',
+        clicked: 'Cliqué',
+        failed: 'Échoué',
     }
-    return labels[status as keyof typeof labels] || status
+    return labels[status] || status
 }
 
 const truncate = (text: string, length: number) => {

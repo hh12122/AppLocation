@@ -36,14 +36,25 @@ const props = defineProps<Props>()
 
 const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-        nearby_rental: 'Nearby Rental',
-        pickup_reminder: 'Pickup Reminder',
-        area_alert: 'Area Alert',
-        promotional: 'Promotional',
-        new_listing: 'New Listing',
-        price_drop: 'Price Drop',
+        nearby_rental: 'Location à proximité',
+        pickup_reminder: 'Rappel de retrait',
+        area_alert: 'Alerte de zone',
+        promotional: 'Promotionnel',
+        new_listing: 'Nouvelle annonce',
+        price_drop: 'Baisse de prix',
     }
     return labels[type] || type
+}
+
+const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+        pending: 'En attente',
+        sent: 'Envoyé',
+        read: 'Lu',
+        clicked: 'Cliqué',
+        failed: 'Échoué',
+    }
+    return labels[status] || status
 }
 
 const getStatusBadgeClass = (status: string) => {
@@ -64,27 +75,27 @@ const formatDateTime = (datetime: string | null) => {
 </script>
 
 <template>
-    <Head title="Geo-Notification Details" />
+    <Head title="Détails de la Géo-Notification" />
 
     <AppLayout>
         <div class="py-12">
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 <div class="flex items-center justify-between">
                     <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        Notification Details
+                        Détails de la notification
                     </h2>
                     <div class="flex items-center gap-3">
                         <Link
                             :href="route('admin.geo-notifications.edit', notification.id)"
                             class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
                         >
-                            Edit
+                            Modifier
                         </Link>
                         <Link
                             :href="route('admin.geo-notifications.index')"
                             class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                         >
-                            &larr; Back to list
+                            &larr; Retour à la liste
                         </Link>
                     </div>
                 </div>
@@ -94,7 +105,7 @@ const formatDateTime = (datetime: string | null) => {
                         <div class="flex items-center justify-between">
                             <CardTitle>{{ notification.title }}</CardTitle>
                             <span class="px-3 py-1 text-xs font-medium rounded-full" :class="getStatusBadgeClass(notification.status)">
-                                {{ notification.status }}
+                                {{ getStatusLabel(notification.status) }}
                             </span>
                         </div>
                     </CardHeader>
@@ -107,7 +118,7 @@ const formatDateTime = (datetime: string | null) => {
                             <div>
                                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active</p>
                                 <p class="text-sm" :class="notification.is_active ? 'text-green-600' : 'text-red-600'">
-                                    {{ notification.is_active ? 'Yes' : 'No' }}
+                                    {{ notification.is_active ? 'Oui' : 'Non' }}
                                 </p>
                             </div>
                             <div class="col-span-2">
@@ -120,26 +131,26 @@ const formatDateTime = (datetime: string | null) => {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle class="text-base">Location</CardTitle>
+                        <CardTitle class="text-base">Emplacement</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div class="grid grid-cols-2 gap-6">
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Location Name</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom de l'emplacement</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100">{{ notification.location_name || 'N/A' }}</p>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Radius</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Rayon</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100">{{ (notification.radius / 1000).toFixed(1) }} km</p>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Coordinates</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Coordonnées</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100 font-mono">
                                     {{ notification.latitude.toFixed(4) }}, {{ notification.longitude.toFixed(4) }}
                                 </p>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Eligible Users</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Utilisateurs éligibles</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100">{{ eligibleUsersCount }}</p>
                             </div>
                         </div>
@@ -148,24 +159,24 @@ const formatDateTime = (datetime: string | null) => {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle class="text-base">Timeline</CardTitle>
+                        <CardTitle class="text-base">Chronologie</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div class="grid grid-cols-2 gap-6">
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Created</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Créée le</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100">{{ formatDateTime(notification.created_at) }}</p>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Scheduled For</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Planifiée pour</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100">{{ formatDateTime(notification.scheduled_for) }}</p>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Sent At</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Envoyée le</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100">{{ formatDateTime(notification.sent_at) }}</p>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Expires At</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Expire le</p>
                                 <p class="text-sm text-gray-900 dark:text-gray-100">{{ formatDateTime(notification.expires_at) }}</p>
                             </div>
                         </div>
@@ -174,7 +185,7 @@ const formatDateTime = (datetime: string | null) => {
 
                 <Card v-if="notification.data && Object.keys(notification.data).length > 0">
                     <CardHeader>
-                        <CardTitle class="text-base">Additional Data</CardTitle>
+                        <CardTitle class="text-base">Données supplémentaires</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <pre class="text-xs bg-gray-100 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto text-gray-900 dark:text-gray-100">{{ JSON.stringify(notification.data, null, 2) }}</pre>

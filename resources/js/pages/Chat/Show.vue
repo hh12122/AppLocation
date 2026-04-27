@@ -341,18 +341,18 @@ watch(localMessages, () => {
     <AppLayout>
         <div class="h-screen flex flex-col">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 px-6 py-4">
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                 <!-- Connection Status Alert -->
                 <div v-if="echoError" class="max-w-6xl mx-auto mb-4">
-                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 p-4">
                         <div class="flex">
                             <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <svg class="h-5 w-5 text-yellow-400 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                                 </svg>
                             </div>
                             <div class="ml-3">
-                                <p class="text-sm text-yellow-700">
+                                <p class="text-sm text-yellow-700 dark:text-yellow-200">
                                     {{ echoError }} Messages will not update in real-time.
                                 </p>
                             </div>
@@ -364,7 +364,7 @@ watch(localMessages, () => {
                     <div class="flex items-center space-x-4">
                         <Link
                             :href="route('chat.index')"
-                            class="text-blue-600 hover:text-blue-800"
+                            class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                         >
                             ← Retour
                         </Link>
@@ -380,10 +380,10 @@ watch(localMessages, () => {
                                 </AvatarFallback>
                             </Avatar>
                             <div>
-                                <h1 class="text-lg font-semibold text-gray-900">
+                                <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     {{ otherParticipant.name }}
                                 </h1>
-                                <p class="text-sm text-gray-600">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
                                     {{ bookingSummary.title }}
                                 </p>
                             </div>
@@ -396,7 +396,7 @@ watch(localMessages, () => {
                         </Badge>
                         <Link
                             :href="bookingSummary.detail_route"
-                            class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
                         >
                             Voir la réservation
                         </Link>
@@ -405,7 +405,7 @@ watch(localMessages, () => {
             </div>
 
             <!-- Messages Container -->
-            <div class="flex-1 overflow-hidden bg-gray-50">
+            <div class="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
                 <div class="max-w-6xl mx-auto h-full flex">
                     <!-- Messages Area -->
                     <div class="flex-1 flex flex-col">
@@ -427,7 +427,7 @@ watch(localMessages, () => {
                                     <!-- System messages -->
                                     <div
                                         v-if="message.message_type === 'system'"
-                                        class="text-center text-sm text-gray-500 py-2"
+                                        class="text-center text-sm text-gray-500 dark:text-gray-400 py-2"
                                     >
                                         {{ message.message }}
                                     </div>
@@ -438,7 +438,7 @@ watch(localMessages, () => {
                                         class="rounded-lg px-4 py-2 shadow-sm"
                                         :class="{
                                             'bg-blue-600 text-white': isMessageFromCurrentUser(message),
-                                            'bg-white text-gray-900': !isMessageFromCurrentUser(message)
+                                            'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100': !isMessageFromCurrentUser(message)
                                         }"
                                     >
                                         <p class="text-sm">{{ message.message }}</p>
@@ -446,7 +446,7 @@ watch(localMessages, () => {
                                             class="text-xs mt-1"
                                             :class="{
                                                 'text-blue-100': isMessageFromCurrentUser(message),
-                                                'text-gray-500': !isMessageFromCurrentUser(message)
+                                                'text-gray-500 dark:text-gray-400': !isMessageFromCurrentUser(message)
                                             }"
                                         >
                                             {{ formatMessageTime(message.created_at) }}
@@ -457,18 +457,18 @@ watch(localMessages, () => {
 
                             <!-- Empty state for no messages -->
                             <div v-if="localMessages.length === 0" class="text-center py-12">
-                                <div class="text-gray-400 text-4xl mb-4">💬</div>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">
+                                <div class="text-gray-400 dark:text-gray-500 text-4xl mb-4">💬</div>
+                                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                                     Commencer la conversation
                                 </h3>
-                                <p class="text-gray-600">
+                                <p class="text-gray-600 dark:text-gray-400">
                                     Envoyez votre premier message à {{ otherParticipant.name }}
                                 </p>
                             </div>
                         </div>
 
                         <!-- Message Input -->
-                        <div class="border-t border-gray-200 bg-white p-4">
+                        <div class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
                             <div class="flex space-x-3">
                                 <div class="flex-1">
                                     <Input
@@ -492,7 +492,7 @@ watch(localMessages, () => {
                     </div>
 
                     <!-- Sidebar with booking info -->
-                    <div class="w-80 bg-white border-l border-gray-200 p-6">
+                    <div class="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-6">
                         <div class="space-y-6">
                             <!-- Booking Details -->
                             <Card>
@@ -505,19 +505,19 @@ watch(localMessages, () => {
                                 </CardHeader>
                                 <CardContent class="space-y-3">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-900">
+                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                             {{ bookingSummary.type === 'rental' ? 'Véhicule' :
                                                bookingSummary.type === 'property_booking' ? 'Propriété' :
                                                'Matériel' }}
                                         </p>
-                                        <p class="text-sm text-gray-600">{{ bookingSummary.title }}</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ bookingSummary.title }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-medium text-gray-900">Période</p>
-                                        <p class="text-sm text-gray-600">{{ bookingSummary.dates }}</p>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Période</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ bookingSummary.dates }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-medium text-gray-900">Statut</p>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Statut</p>
                                         <Badge :class="getStatusColor(bookingSummary.status)" class="text-xs">
                                             {{ getStatusLabel(bookingSummary.status) }}
                                         </Badge>
@@ -533,14 +533,14 @@ watch(localMessages, () => {
                                 <CardContent class="space-y-2">
                                     <Link
                                         :href="bookingSummary.detail_route"
-                                        class="block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium"
+                                        class="block w-full text-center bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 text-sm font-medium"
                                     >
                                         Voir la réservation
                                     </Link>
                                     <Link
                                         v-if="bookingSummary.item_route"
                                         :href="bookingSummary.item_route"
-                                        class="block w-full text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm font-medium"
+                                        class="block w-full text-center border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"
                                     >
                                         {{ bookingSummary.type === 'rental' ? 'Voir le véhicule' :
                                            bookingSummary.type === 'property_booking' ? 'Voir la propriété' :
@@ -554,7 +554,7 @@ watch(localMessages, () => {
                                 <CardHeader>
                                     <CardTitle class="text-base">Conseils</CardTitle>
                                 </CardHeader>
-                                <CardContent class="text-xs text-gray-600 space-y-2">
+                                <CardContent class="text-xs text-gray-600 dark:text-gray-400 space-y-2">
                                     <p>• Soyez poli et respectueux</p>
                                     <p>• Précisez les détails importants</p>
                                     <p>• Répondez rapidement</p>
