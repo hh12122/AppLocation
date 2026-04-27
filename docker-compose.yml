@@ -11,7 +11,7 @@ services:
       # Les dossiers générés dans le container ne doivent pas être écrasés
       - /var/www/vendor
       - /var/www/node_modules
-      - /var/www/public/build
+      - build-assets:/var/www/public/build
     environment:
       - DB_CONNECTION=mysql
       - DB_HOST=db
@@ -38,6 +38,7 @@ services:
       - "80:80"
     volumes:
       - ./:/var/www
+      - build-assets:/var/www/public/build
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - app
@@ -74,6 +75,7 @@ services:
     command: php artisan queue:work --tries=3 --timeout=90
     volumes:
       - ./:/var/www
+      - /var/www/vendor
     depends_on:
       - app
       - redis
@@ -89,6 +91,7 @@ services:
       - "8080:8080"
     volumes:
       - ./:/var/www
+      - /var/www/vendor
     depends_on:
       - app
       - redis
@@ -102,3 +105,4 @@ networks:
 volumes:
   db-data:
   redis-data:
+  build-assets:
