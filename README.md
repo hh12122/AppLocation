@@ -235,6 +235,45 @@ php artisan queue:work
 composer run dev
 ```
 
+### 🐳 Déploiement avec Docker (Production)
+
+L'application est configurée pour être facilement déployée en production avec Docker et Docker Compose. Cela configure automatiquement l'application PHP, Nginx, MySQL, Redis, le Queue Worker et le serveur WebSockets (Reverb).
+
+1. Configurez votre fichier `.env` avec les valeurs pour l'environnement Docker :
+```env
+APP_ENV=production
+APP_DEBUG=false
+
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=applocation
+DB_USERNAME=applocation
+DB_PASSWORD=secret
+
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+REDIS_HOST=redis
+
+BROADCAST_DRIVER=reverb
+```
+
+2. Lancez les services en arrière-plan :
+```bash
+docker-compose up -d --build
+```
+
+3. Exécutez les commandes initiales (la première fois uniquement) :
+```bash
+docker-compose exec app php artisan key:generate
+docker-compose exec app php artisan migrate --force
+docker-compose exec app php artisan db:seed --force
+docker-compose exec app php artisan storage:link
+```
+
+Votre application sera accessible sur le port 80 (`http://localhost` ou IP de votre serveur) et les WebSockets sur le port 8080.
+
 ## 🧪 Comptes de Test
 
 Après avoir exécuté le seeder, vous pouvez utiliser ces comptes :
