@@ -3,7 +3,7 @@
     <h2 class="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
       Paiement de votre location
     </h2>
-    
+
     <!-- Payment Summary -->
     <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div class="flex justify-between items-center mb-2">
@@ -95,12 +95,12 @@
             </div>
           </div>
         </div>
-        
+
         <div class="flex justify-between items-center text-sm">
           <span class="text-green-700 dark:text-green-300">Économies :</span>
           <span class="font-medium text-green-800 dark:text-green-200">{{ formatAmount(referralCreditDiscount) }}</span>
         </div>
-        
+
         <div v-if="totalAmount === 0" class="p-3 bg-green-100 dark:bg-green-800/40 rounded-md">
           <p class="text-sm text-green-800 dark:text-green-200 font-medium">
             🎉 Votre location sera entièrement payée avec vos crédits de parrainage !
@@ -133,7 +133,7 @@
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Carte bancaire</p>
         </button>
 
-        <button
+        <!--<button
           @click="selectedMethod = 'paypal'"
           :class="[
             'p-4 border-2 rounded-lg transition-all duration-200',
@@ -149,7 +149,7 @@
             <span class="font-medium text-gray-900 dark:text-gray-100">PayPal</span>
           </div>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Compte PayPal</p>
-        </button>
+        </button>-->
       </div>
     </div>
 
@@ -161,7 +161,7 @@
       <div id="card-errors" role="alert" class="text-red-500 text-sm mt-2"></div>
     </div>
 
-    <!-- PayPal Payment Info -->
+    <!--<PayPal Payment Info
     <div v-if="selectedMethod === 'paypal'" class="mb-6">
       <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
         <p class="text-sm text-yellow-800 dark:text-yellow-200">
@@ -169,6 +169,7 @@
         </p>
       </div>
     </div>
+    -->
 
     <!-- Payment Button -->
     <button
@@ -176,7 +177,7 @@
       :disabled="processing || (totalAmount > 0 && !selectedMethod)"
       :class="[
         'w-full font-medium py-3 px-4 rounded-lg transition-colors duration-200',
-        totalAmount === 0 
+        totalAmount === 0
           ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-400'
           : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400',
         'text-white'
@@ -284,7 +285,7 @@ const formatAmount = (amountInCents: number): string => {
 const initializeStripe = async () => {
   if (typeof window !== 'undefined' && (window as any).Stripe) {
     stripe.value = (window as any).Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-    
+
     const elements = stripe.value.elements()
     cardElement.value = elements.create('card', {
       style: {
@@ -297,11 +298,11 @@ const initializeStripe = async () => {
         },
       },
     })
-    
+
     // Do not mount here, we mount in the watcher when the element is visible
     // cardElement.value.mount('#stripe-card-element')
-    
-    
+
+
     cardElement.value.on('change', (event: any) => {
       const displayError = document.getElementById('card-errors')
       if (event.error) {
@@ -325,17 +326,17 @@ watch(selectedMethod, async (newMethod) => {
 
 const processPayment = async () => {
   processing.value = true
-  
+
   try {
     // If total amount is 0, process as credit-only payment
     if (totalAmount.value === 0) {
       await processCreditsOnlyPayment()
       return
     }
-    
+
     // Otherwise, process with selected payment method
     if (!selectedMethod.value) return
-    
+
     if (selectedMethod.value === 'stripe') {
       await processStripePayment()
     } else if (selectedMethod.value === 'paypal') {
@@ -367,9 +368,9 @@ const processCreditsOnlyPayment = async () => {
       referral_credits: referralCreditsToUse.value,
     })
   })
-  
+
   const data = await response.json()
-  
+
   if (!data.success) {
     throw new Error(data.error || 'Failed to process credits payment')
   }
@@ -382,7 +383,7 @@ const processCreditsOnlyPayment = async () => {
 
 const processStripePayment = async () => {
   if (!stripe.value || !cardElement.value) return
-  
+
   // Create payment intent on the server
   const response = await fetch(`/api/payments/stripe/create-intent`, {
     method: 'POST',
@@ -397,9 +398,9 @@ const processStripePayment = async () => {
       referral_credits: useReferralCredits.value ? referralCreditsToUse.value : 0,
     })
   })
-  
+
   const data = await response.json()
-  
+
   if (!data.success) {
     throw new Error(data.error || 'Failed to create payment intent')
   }
@@ -411,18 +412,18 @@ const processStripePayment = async () => {
     })
     return
   }
-  
+
   // Confirm payment with Stripe
   const result = await stripe.value.confirmCardPayment(data.client_secret, {
     payment_method: {
       card: cardElement.value,
     }
   })
-  
+
   if (result.error) {
     throw new Error(result.error.message)
   }
-  
+
   // Redirect to success page
   router.visit(`/payments/success?payment_intent=${result.paymentIntent.id}`)
 }
@@ -442,9 +443,9 @@ const processPayPalPayment = async () => {
       referral_credits: useReferralCredits.value ? referralCreditsToUse.value : 0,
     })
   })
-  
+
   const data = await response.json()
-  
+
   if (!data.success) {
     throw new Error(data.error || 'Failed to create PayPal order')
   }
@@ -456,7 +457,7 @@ const processPayPalPayment = async () => {
     })
     return
   }
-  
+
   // Redirect to PayPal approval URL
   window.location.href = data.approval_url
 }

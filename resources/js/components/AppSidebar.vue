@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import NavMain from '@/components/NavMain.vue';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, ref, onMounted } from 'vue';
 import { Car, LayoutGrid, Calendar, Heart, CreditCard, MessageSquare, Home, Building, Bike, Wrench, Ship, MapPin, ClipboardList, ShieldCheck, FileText, Globe } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import NavUser from './NavUser.vue';
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
@@ -211,6 +212,12 @@ const adminNavItems = computed<NavItem[]>(() => {
             <NavMain :items="mainNavItems" />
             <NavMain v-if="isAdmin" :items="adminNavItems" label="Administration" />
         </SidebarContent>
+
+        <SidebarFooter>
+            <div class="px-4 py-2 text-xs text-muted-foreground">Role: {{ userRole }}</div>
+            <NavUser />
+        </SidebarFooter>
     </Sidebar>
+
     <slot />
 </template>
