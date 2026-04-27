@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import axios from 'axios'
+const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 
 interface Language {
     id: number
@@ -47,13 +47,21 @@ const loadTranslations = async () => {
 
     isLoadingTranslations.value = true
     try {
-        const response = await axios.get(route('localization.translations'), {
-            params: {
-                locale: selectedLocale.value,
-                group: selectedGroup.value,
-            },
+        const url = new URL(route('localization.translations'), window.location.origin)
+        url.searchParams.append('locale', selectedLocale.value)
+        url.searchParams.append('group', selectedGroup.value)
+        
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
-        translations.value = response.data.translations || {}
+        
+        if (!response.ok) throw new Error('Failed to fetch translations')
+        
+        const data = await response.json()
+        translations.value = data.translations || {}
     } catch (error) {
         console.error('Failed to load translations:', error)
         translations.value = {}
@@ -77,11 +85,20 @@ const filteredKeys = computed(() => {
 
 const updateTranslation = async (key: string, value: string) => {
     try {
-        await axios.post(route('admin.translations.update'), {
-            locale: selectedLocale.value,
-            group: selectedGroup.value,
-            key,
-            value,
+        await fetch(route('admin.translations.update'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify({
+                locale: selectedLocale.value,
+                group: selectedGroup.value,
+                key,
+                value,
+            })
         })
     } catch (error) {
         console.error('Failed to update translation:', error)

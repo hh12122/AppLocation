@@ -8,14 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import axios from 'axios'
-
-// Configure axios for CSRF protection and AJAX detection
-axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
-axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-axios.defaults.headers.common['Accept'] = 'application/json'
-axios.defaults.headers.common['Content-Type'] = 'application/json'
-axios.defaults.withCredentials = true // Ensure cookies are sent with requests
+const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 
 // Get page instance for accessing shared props
 const page = usePage<AppPageProps>()
@@ -93,16 +86,36 @@ const sendMessage = async () => {
         const echo = (window as any).Echo
         const socketId = echo?.socketId?.() || null
 
-        const response = await axios.post(url, {
-            message: messageContent,
-            message_type: 'text',
-        }, {
-            headers: socketId ? { 'X-Socket-Id': socketId } : {},
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+        
+        if (socketId) {
+            headers['X-Socket-Id'] = socketId
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                message: messageContent,
+                message_type: 'text',
+            }),
+            credentials: 'include'
         })
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const responseData = await response.json()
+
         // Add message to UI immediately from the response
-        if (response.data && response.data.message) {
-            const newMessage = response.data.message
+        if (responseData && responseData.message) {
+            const newMessage = responseData.message
 
             if (!newMessage.sender) {
                 newMessage.sender = currentUser.value
@@ -116,9 +129,7 @@ const sendMessage = async () => {
         }
     } catch (error: any) {
         console.error('Error sending message:', error)
-        if (axios.isAxiosError(error) && error.response) {
-            console.error('Error response:', error.response.data)
-        }
+        console.error('Error sending message:', error)
         messageInput.value = messageContent
         alert('Erreur lors de l\'envoi du message')
     } finally {
@@ -226,8 +237,16 @@ onMounted(() => {
     }
 
     // Mark messages as read when viewing the conversation
-    axios.post(route('api.chat.mark-read', props.conversation.id))
-        .catch((error: any) => console.error('Error marking messages as read:', error))
+    fetch(route('api.chat.mark-read', props.conversation.id), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'include'
+    }).catch((error: any) => console.error('Error marking messages as read:', error))
 
     // Setup Echo subscription with a small delay to ensure Echo is connected
     const echo = (window as any).Echo

@@ -332,7 +332,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
-import { debounce } from 'lodash'
 import {
     BellIcon,
     CheckCircleIcon,
@@ -407,9 +406,13 @@ const applyFilters = () => {
     })
 }
 
-const debouncedSearch = debounce(() => {
-    applyFilters()
-}, 300)
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+const debouncedSearch = () => {
+    if (searchTimeout) clearTimeout(searchTimeout)
+    searchTimeout = setTimeout(() => {
+        applyFilters()
+    }, 300)
+}
 
 const refreshStatistics = async () => {
     isRefreshing.value = true

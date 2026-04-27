@@ -1,5 +1,30 @@
 import { ref, computed } from 'vue';
-import axios from 'axios';
+
+const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+const fetchApi = async (url: string, options: RequestInit = {}) => {
+  const headers = new Headers(options.headers || {});
+  headers.set('Accept', 'application/json');
+  headers.set('X-Requested-With', 'XMLHttpRequest');
+  
+  if (options.method && options.method.toUpperCase() !== 'GET') {
+    headers.set('Content-Type', 'application/json');
+    headers.set('X-CSRF-TOKEN', getCsrfToken());
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw { response: { status: response.status, data: errorData } };
+  }
+
+  return response.json();
+};
 
 interface Recommendation {
   id: number;
@@ -31,11 +56,12 @@ export function useAIRecommendations() {
     error.value = null;
 
     try {
-      const response = await axios.get('/api/ai/recommendations', {
-        params: { type, limit }
-      });
-      recommendations.value = response.data.recommendations;
-      return response.data.recommendations;
+      const url = new URL('/api/ai/recommendations', window.location.origin);
+      url.searchParams.append('type', type);
+      url.searchParams.append('limit', limit.toString());
+      const data = await fetchApi(url.toString());
+      recommendations.value = data.recommendations;
+      return data.recommendations;
     } catch (err) {
       error.value = 'Erreur lors du chargement des recommandations';
       console.error('Error fetching recommendations:', err);
@@ -51,11 +77,13 @@ export function useAIRecommendations() {
     error.value = null;
 
     try {
-      const response = await axios.get('/api/ai/trending', {
-        params: { type, location, limit }
-      });
-      trending.value = response.data.trending;
-      return response.data.trending;
+      const url = new URL('/api/ai/trending', window.location.origin);
+      url.searchParams.append('type', type);
+      if (location) url.searchParams.append('location', location);
+      url.searchParams.append('limit', limit.toString());
+      const data = await fetchApi(url.toString());
+      trending.value = data.trending;
+      return data.trending;
     } catch (err) {
       error.value = 'Erreur lors du chargement des tendances';
       console.error('Error fetching trending:', err);
@@ -73,11 +101,12 @@ export function useAIRecommendations() {
     }
 
     try {
-      const response = await axios.get('/api/ai/search-suggestions', {
-        params: { q: query, type }
-      });
-      searchSuggestions.value = response.data.suggestions;
-      return response.data.suggestions;
+      const url = new URL('/api/ai/search-suggestions', window.location.origin);
+      url.searchParams.append('q', query);
+      url.searchParams.append('type', type);
+      const data = await fetchApi(url.toString());
+      searchSuggestions.value = data.suggestions;
+      return data.suggestions;
     } catch (err) {
       console.error('Error fetching suggestions:', err);
       return [];
@@ -92,11 +121,14 @@ export function useAIRecommendations() {
     metadata: Record<string, any> = {}
   ) => {
     try {
-      await axios.post('/api/ai/track-activity', {
-        activity_type: activityType,
-        entity_type: entityType,
-        entity_id: entityId,
-        metadata
+      await fetchApi('/api/ai/track-activity', {
+        method: 'POST',
+        body: JSON.stringify({
+          activity_type: activityType,
+          entity_type: entityType,
+          entity_id: entityId,
+          metadata
+        })
       });
     } catch (err) {
       console.error('Error tracking activity:', err);
@@ -111,14 +143,17 @@ export function useAIRecommendations() {
     resultsCount: number = 0
   ) => {
     try {
-      const response = await axios.post('/api/ai/track-search', {
-        search_query: searchQuery,
-        search_type: searchType,
-        filters,
-        results_count: resultsCount
+      const data = await fetchApi('/api/ai/track-search', {
+        method: 'POST',
+        body: JSON.stringify({
+          search_query: searchQuery,
+          search_type: searchType,
+          filters,
+          results_count: resultsCount
+        })
       });
-      lastSearchId.value = response.data.search_id;
-      return response.data.search_id;
+      lastSearchId.value = data.search_id;
+      return data.search_id;
     } catch (err) {
       console.error('Error tracking search:', err);
       return null;
@@ -131,9 +166,12 @@ export function useAIRecommendations() {
     if (!id) return;
 
     try {
-      await axios.post(`/api/ai/search/${id}/success`, {
-        item_type: itemType,
-        item_id: itemId
+      await fetchApi(`/api/ai/search/${id}/success`, {
+        method: 'POST',
+        body: JSON.stringify({
+          item_type: itemType,
+          item_id: itemId
+        })
       });
     } catch (err) {
       console.error('Error marking search success:', err);
@@ -143,7 +181,7 @@ export function useAIRecommendations() {
   // Track recommendation interactions
   const markRecommendationViewed = async (recommendationId: number) => {
     try {
-      await axios.post(`/api/ai/recommendations/${recommendationId}/viewed`);
+      await fetchApi(`/api/ai/recommendations/${recommendationId}/viewed`, { method: 'POST' });
     } catch (err) {
       console.error('Error marking recommendation viewed:', err);
     }
@@ -151,7 +189,7 @@ export function useAIRecommendations() {
 
   const markRecommendationClicked = async (recommendationId: number) => {
     try {
-      await axios.post(`/api/ai/recommendations/${recommendationId}/clicked`);
+      await fetchApi(`/api/ai/recommendations/${recommendationId}/clicked`, { method: 'POST' });
     } catch (err) {
       console.error('Error marking recommendation clicked:', err);
     }
@@ -159,7 +197,7 @@ export function useAIRecommendations() {
 
   const markRecommendationConverted = async (recommendationId: number) => {
     try {
-      await axios.post(`/api/ai/recommendations/${recommendationId}/converted`);
+      await fetchApi(`/api/ai/recommendations/${recommendationId}/converted`, { method: 'POST' });
     } catch (err) {
       console.error('Error marking recommendation converted:', err);
     }
@@ -172,9 +210,12 @@ export function useAIRecommendations() {
     comment?: string
   ) => {
     try {
-      await axios.post(`/api/ai/recommendations/${recommendationId}/feedback`, {
-        feedback_type: feedbackType,
-        comment
+      await fetchApi(`/api/ai/recommendations/${recommendationId}/feedback`, {
+        method: 'POST',
+        body: JSON.stringify({
+          feedback_type: feedbackType,
+          comment
+        })
       });
       return true;
     } catch (err) {

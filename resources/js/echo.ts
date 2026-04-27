@@ -1,18 +1,10 @@
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
-import axios from 'axios'
 
 // Make Pusher available globally for Laravel Echo
 (window as any).Pusher = Pusher
 
-// Configure axios for CSRF protection (required for broadcasting auth)
-const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-if (token) {
-    axios.defaults.headers.common['X-CSRF-TOKEN'] = token
-    axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
-} else {
-    console.error('CSRF token not found in meta tags!')
-}
+const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 
 // Create Echo instance with proper configuration
 const echo = new Echo({
@@ -28,28 +20,44 @@ const echo = new Echo({
     // Use default authEndpoint (Laravel Echo will handle it properly)
     authEndpoint: '/broadcasting/auth',
 
-    // Use axios as the authorizer (it properly handles CSRF and cookies)
     authorizer: (channel: any) => {
         return {
             authorize: (socketId: string, callback: (error: any, data?: any) => void) => {
-                axios.post('/broadcasting/auth', {
-                    socket_id: socketId,
-                    channel_name: channel.name
-                }, {
-                    withCredentials: true
+                fetch('/broadcasting/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        socket_id: socketId,
+                        channel_name: channel.name
+                    }),
+                    credentials: 'include'
                 })
-                    .then(response => {
-                    callback(null, response.data)
-                })
-                    .catch(error => {
-                        console.error('Broadcasting auth failed:', {
-                            status: error.response?.status,
-                            statusText: error.response?.statusText,
-                            data: error.response?.data,
-                            channel: channel.name
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw { response: { status: response.status, data } }
+                        }).catch(() => {
+                            throw { response: { status: response.status } }
                         })
-                        callback(error)
+                    }
+                    return response.json()
+                })
+                .then(data => {
+                    callback(null, data)
+                })
+                .catch(error => {
+                    console.error('Broadcasting auth failed:', {
+                        status: error.response?.status,
+                        data: error.response?.data,
+                        channel: channel.name
                     })
+                    callback(error)
+                })
             }
         }
     }

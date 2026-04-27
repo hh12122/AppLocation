@@ -1,7 +1,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePage, router } from '@inertiajs/vue3';
-import axios from 'axios';
+
 import { 
   updateLocale, 
   updateMessages, 
@@ -71,7 +71,14 @@ export function useLocalization() {
     
     try {
       // Update locale on server
-      await axios.post('/localization/change-locale', { locale: newLocale });
+      await fetch('/localization/change-locale', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        },
+        body: JSON.stringify({ locale: newLocale })
+      });
       
       // Reload page with new locale
       router.reload({
@@ -177,15 +184,19 @@ export function useLocalization() {
     locale?: string
   ): Promise<string> => {
     try {
-      const response = await axios.get('/api/translations/model', {
-        params: {
-          type: modelType,
-          id: modelId,
-          field,
-          locale: locale || currentLocale.value,
-        },
+      const url = new URL('/api/translations/model', window.location.origin);
+      url.searchParams.append('type', modelType);
+      url.searchParams.append('id', modelId.toString());
+      url.searchParams.append('field', field);
+      url.searchParams.append('locale', locale || currentLocale.value);
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Accept': 'application/json'
+        }
       });
-      return response.data.translation;
+      const data = await response.json();
+      return data.translation;
     } catch (error) {
       console.error('Error fetching model translation:', error);
       return '';
