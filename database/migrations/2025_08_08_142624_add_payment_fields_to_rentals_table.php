@@ -24,7 +24,7 @@ return new class extends Migration
             }
             
             if (!Schema::hasColumn('rentals', 'deposit_amount')) {
-                $table->integer('deposit_amount')->default(0)->after('total_price'); // Security deposit in cents
+                $table->integer('deposit_amount')->default(0)->after('total_amount'); // Security deposit in cents
             }
             
             if (!Schema::hasColumn('rentals', 'deposit_returned')) {

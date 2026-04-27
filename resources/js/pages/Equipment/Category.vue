@@ -192,7 +192,7 @@ const getSubcategoryLabel = (subcategory: string) => {
           </div>
         </div>
 
-        <Link :href="route('equipment.create', { category })">
+        <Link v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))" :href="route('equipment.create', { category })">
           <Button>
             <Plus class="w-4 h-4 mr-2" />
             Ajouter mon matériel
@@ -422,7 +422,7 @@ const getSubcategoryLabel = (subcategory: string) => {
           <Button @click="clearFilters">
             Réinitialiser les filtres
           </Button>
-          <Link :href="route('equipment.create', { category })">
+          <Link v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))" :href="route('equipment.create', { category })">
             <Button variant="outline">
               <Plus class="w-4 h-4 mr-2" />
               Ajouter le premier

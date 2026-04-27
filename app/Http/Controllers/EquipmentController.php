@@ -27,7 +27,7 @@ class EquipmentController extends Controller
             ->paginate(12)
             ->appends($request->query());
 
-        return Inertia::render('equipment/Index', [
+        return Inertia::render('Equipment/Index', [
             'equipment' => $equipment,
             'categories' => Equipment::getCategoryConfig(),
             'filters' => $this->getFilterOptions(),
@@ -63,7 +63,7 @@ class EquipmentController extends Controller
 
         $categoryConfig = Equipment::getCategoryConfig()[$category];
 
-        return Inertia::render('equipment/Category', [
+        return Inertia::render('Equipment/Category', [
             'equipment' => $equipment,
             'category' => $category,
             'categoryConfig' => $categoryConfig,
@@ -88,7 +88,7 @@ class EquipmentController extends Controller
 
         $category = $request->get('category', 'sports_equipment');
 
-        return Inertia::render('equipment/Create', [
+        return Inertia::render('Equipment/Create', [
             'categories' => Equipment::getCategoryConfig(),
             'selectedCategory' => $category,
         ]);
@@ -219,7 +219,7 @@ class EquipmentController extends Controller
             ->limit(4)
             ->get();
 
-        return Inertia::render('equipment/Show', [
+        return Inertia::render('Equipment/Show', [
             'equipment' => $equipment,
             'categoryConfig' => Equipment::getCategoryConfig()[$equipment->category],
             'similarEquipment' => $similarEquipment,
@@ -244,7 +244,7 @@ class EquipmentController extends Controller
             $query->orderBy('sort_order');
         }]);
 
-        return Inertia::render('equipment/Edit', [
+        return Inertia::render('Equipment/Edit', [
             'equipment' => $equipment,
             'categories' => Equipment::getCategoryConfig(),
         ]);
@@ -395,7 +395,7 @@ class EquipmentController extends Controller
             ->paginate(12)
             ->appends($request->query());
 
-        return Inertia::render('equipment/MyEquipment', [
+        return Inertia::render('Equipment/MyEquipment', [
             'equipment' => $equipment,
             'categories' => Equipment::getCategoryConfig(),
             'stats' => [

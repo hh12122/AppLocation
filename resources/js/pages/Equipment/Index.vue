@@ -160,7 +160,7 @@ const getEquipmentImage = (equipment: Equipment) => {
           </p>
         </div>
 
-        <Link :href="route('equipment.create')">
+        <Link v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))" :href="route('equipment.create')">
           <Button>
             <Plus class="w-4 h-4 mr-2" />
             Ajouter mon matériel

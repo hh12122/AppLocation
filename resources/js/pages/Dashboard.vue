@@ -153,6 +153,7 @@ const getConversionRate = computed(() => {
                 </Link>
 
                 <Link
+                    v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))"
                     :href="route('vehicles.create')"
                     class="bg-green-600 text-white p-6 rounded-lg hover:bg-green-700 transition-colors text-center"
                 >
@@ -329,7 +330,7 @@ const getConversionRate = computed(() => {
                                 </div>
                             </div>
 
-                            <div class="flex items-start space-x-3">
+                            <div v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))" class="flex items-start space-x-3">
                                 <div class="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600">
                                     3
                                 </div>

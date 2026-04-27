@@ -10,7 +10,7 @@ interface EquipmentBooking {
     start_date: string
     end_date: string
     status: 'pending' | 'confirmed' | 'ready_for_pickup' | 'in_use' | 'completed' | 'cancelled'
-    total_price: number
+    total_amount: number
     total_with_fees: number
     quantity: number
     rental_unit: string
@@ -214,7 +214,7 @@ const categoryLabels: Record<string, string> = {
                                                     <strong class="ml-4">Durée:</strong> {{ booking.duration }} {{ booking.rental_unit }}(s)
                                                 </p>
                                                 <p class="text-sm font-semibold text-gray-900 mt-2">
-                                                    Revenu: {{ formatPrice(booking.total_price) }}
+                                                    Revenu: {{ formatPrice(booking.total_amount) }}
                                                 </p>
                                             </div>
                                         </div>

@@ -165,7 +165,7 @@ class VehicleController extends Controller
                 ->toArray();
         }
 
-        return Inertia::render('vehicles/Index', [
+        return Inertia::render('Vehicles/Index', [
             'vehicles' => $vehicles,
             'filters' => $request->all(),
             'filterOptions' => $filterOptions,
@@ -175,11 +175,20 @@ class VehicleController extends Controller
 
     public function create()
     {
-        return Inertia::render('vehicles/Create');
+        if (! auth()->user()?->canListVehicles()) {
+            return to_route('vehicles.index')
+                ->with('error', 'Vous devez être propriétaire pour lister un véhicule.');
+        }
+
+        return Inertia::render('Vehicles/Create');
     }
 
     public function store(Request $request)
     {
+        if (! auth()->user()?->canListVehicles()) {
+            abort(403, 'Unauthorized to create vehicles');
+        }
+
         $validated = $request->validate([
             'brand' => 'required|string|max:255',
             'model' => 'required|string|max:255',
@@ -244,7 +253,7 @@ class VehicleController extends Controller
             $isFavorited = auth()->user()->hasFavorited($vehicle);
         }
 
-        return Inertia::render('vehicles/Show', [
+        return Inertia::render('Vehicles/Show', [
             'vehicle' => $vehicle,
             'bookings' => $bookings,
             'canRent' => auth()->check() && auth()->user()->canRent() && $vehicle->owner_id !== auth()->id(),
@@ -258,7 +267,7 @@ class VehicleController extends Controller
 
         $vehicle->load('images');
 
-        return Inertia::render('vehicles/Edit', [
+        return Inertia::render('Vehicles/Edit', [
             'vehicle' => $vehicle,
         ]);
     }
@@ -324,7 +333,7 @@ class VehicleController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('vehicles/MyVehicles', [
+        return Inertia::render('Vehicles/MyVehicles', [
             'vehicles' => $vehicles,
         ]);
     }

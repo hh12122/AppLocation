@@ -276,7 +276,7 @@ class AIRecommendationController extends Controller
             'recent_searches' => SearchHistory::forUser($user->id)->recent(7)->count(),
             'totalVehicles' => Vehicle::forOwner($user->id)->count(),
             'activeRentals' => Rental::forUser($user->id)->count()  ,
-            'totalEarnings' => Rental::forUser($user->id)->where('status', 'completed')->sum('total_price'),
+            'totalEarnings' => Rental::forUser($user->id)->where('status', 'completed')->sum('total_amount'),
             'completedRentals' => Rental::forUser($user->id)->where('status', 'completed')->count(),
         ];
         // Get recent recommendations

@@ -71,7 +71,7 @@ return new class extends Migration
             $table->index(['entity_type', 'entity_id']);
             $table->index('score');
             $table->index('expires_at');
-            $table->unique(['user_id', 'entity_type', 'entity_id', 'recommendation_type']);
+            $table->unique(['user_id', 'entity_type', 'entity_id', 'recommendation_type'], 'user_recommendation_unique');
         });
 
         // User preferences learned by AI
@@ -87,7 +87,7 @@ return new class extends Migration
             $table->timestamp('last_interaction_at')->nullable();
             $table->timestamps();
             
-            $table->unique(['user_id', 'preference_type', 'preference_key']);
+            $table->unique(['user_id', 'preference_type', 'preference_key'], 'user_preference_unique');
             $table->index(['user_id', 'preference_type']);
             $table->index('weight');
         });
@@ -107,7 +107,7 @@ return new class extends Migration
             $table->date('period_date'); // The date this trend data is for
             $table->timestamps();
             
-            $table->unique(['entity_type', 'entity_id', 'trend_type', 'period_date', 'location']);
+            $table->unique(['entity_type', 'entity_id', 'trend_type', 'period_date', 'location'], 'trending_items_unique');
             $table->index(['entity_type', 'trend_type', 'period_date']);
             $table->index('trend_score');
             $table->index('location');
@@ -126,7 +126,7 @@ return new class extends Migration
             $table->date('period_date');
             $table->timestamps();
             
-            $table->unique(['search_term', 'search_type', 'location', 'period_date']);
+            $table->unique(['search_term', 'search_type', 'location', 'period_date'], 'popular_searches_unique');
             $table->index(['search_type', 'period_date']);
             $table->index('search_count');
             $table->index('effectiveness_score');

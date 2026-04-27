@@ -27,7 +27,7 @@ class PropertyController extends Controller
             ->paginate(12)
             ->appends($request->query());
 
-        return Inertia::render('properties/Index', [
+        return Inertia::render('Properties/Index', [
             'properties' => $properties,
             'filters' => $this->getFilterOptions(),
             'searchParams' => $request->only([
@@ -47,7 +47,7 @@ class PropertyController extends Controller
                 ->with('error', 'Vous devez avoir un permis vérifié pour lister une propriété.');
         }
 
-        return Inertia::render('properties/Create');
+        return Inertia::render('Properties/Create');
     }
 
     /**
@@ -140,7 +140,7 @@ class PropertyController extends Controller
             ->limit(4)
             ->get();
 
-        return Inertia::render('properties/Show', [
+        return Inertia::render('Properties/Show', [
             'property' => $property,
             'similarProperties' => $similarProperties,
             'isFavorite' => Auth::check() ? Favorite::where('user_id', Auth::id())->where('favoritable_type', Property::class)->where('favoritable_id', $property->id)->exists() : false,
@@ -160,7 +160,7 @@ class PropertyController extends Controller
             $query->orderBy('sort_order');
         }]);
 
-        return Inertia::render('properties/Edit', [
+        return Inertia::render('Properties/Edit', [
             'property' => $property,
         ]);
     }
@@ -281,7 +281,7 @@ class PropertyController extends Controller
             ->paginate(12)
             ->appends($request->query());
 
-        return Inertia::render('properties/MyProperties', [
+        return Inertia::render('Properties/MyProperties', [
             'properties' => $properties,
             'stats' => [
                 'total' => $user->properties()->count(),

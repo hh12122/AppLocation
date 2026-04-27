@@ -18,8 +18,9 @@ return new class extends Migration
         // 2. Backfill existing rental conversations
         DB::statement("UPDATE conversations SET conversable_type = 'App\\Models\\Rental', conversable_id = rental_id WHERE rental_id IS NOT NULL");
 
-        // 3. Drop old unique on rental_id, add new unique on morph pair
+        // 3. Drop foreign key, old unique on rental_id, add new unique on morph pair
         Schema::table('conversations', function (Blueprint $table) {
+            $table->dropForeign(['rental_id']);
             $table->dropUnique(['rental_id']);
         });
 
@@ -30,7 +31,6 @@ return new class extends Migration
 
         // 4. Drop rental_id column
         Schema::table('conversations', function (Blueprint $table) {
-            $table->dropForeign(['rental_id']);
             $table->dropColumn('rental_id');
         });
     }

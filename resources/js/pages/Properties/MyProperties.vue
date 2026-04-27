@@ -101,6 +101,7 @@ const propertyTypeLabels: Record<string, string> = {
                         <p class="text-gray-600 mt-2">Gérez vos propriétés mises en location</p>
                     </div>
                     <Link
+                        v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))"
                         :href="route('properties.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >
@@ -222,6 +223,7 @@ const propertyTypeLabels: Record<string, string> = {
                         Vous n'avez pas encore ajouté de propriété. Commencez par ajouter votre première propriété.
                     </p>
                     <Link
+                        v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))"
                         :href="route('properties.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >

@@ -122,6 +122,7 @@ const getPrice = (equipment: Equipment) => {
                         <p class="text-gray-600 mt-2">Gérez votre équipement mis en location</p>
                     </div>
                     <Link
+                        v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))"
                         :href="route('equipment.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >
@@ -251,6 +252,7 @@ const getPrice = (equipment: Equipment) => {
                         Vous n'avez pas encore ajouté d'équipement. Commencez par ajouter votre premier matériel.
                     </p>
                     <Link
+                        v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))"
                         :href="route('equipment.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >

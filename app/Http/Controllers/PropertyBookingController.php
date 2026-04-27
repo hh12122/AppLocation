@@ -56,7 +56,7 @@ class PropertyBookingController extends Controller
             $query->orderBy('sort_order')->limit(3);
         }]);
 
-        return Inertia::render('properties/Book', [
+        return Inertia::render('Properties/Book', [
             'property' => $property,
             'initialData' => [
                 'checkin_date' => $checkinDate?->format('Y-m-d'),
@@ -172,7 +172,7 @@ class PropertyBookingController extends Controller
             'guest',
         ]);
 
-        return Inertia::render('properties/BookingDetails', [
+        return Inertia::render('Properties/BookingDetails', [
             'booking' => $booking,
             'isOwner' => $booking->property->owner_id === Auth::id(),
         ]);
@@ -307,7 +307,7 @@ class PropertyBookingController extends Controller
             ->paginate(10)
             ->appends($request->query());
 
-        return Inertia::render('properties/MyBookings', [
+        return Inertia::render('Properties/MyBookings', [
             'bookings' => $bookings,
             'stats' => [
                 'total' => Auth::user()->propertyBookings()->count(),
@@ -337,7 +337,7 @@ class PropertyBookingController extends Controller
 
         $properties = Auth::user()->properties()->select('id', 'title')->get();
 
-        return Inertia::render('properties/PropertyBookings', [
+        return Inertia::render('Properties/PropertyBookings', [
             'bookings' => $bookings,
             'properties' => $properties,
             'stats' => [

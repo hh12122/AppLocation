@@ -68,7 +68,7 @@ class PaymentController extends Controller
             'total_payments' => Payment::where('user_id', Auth::id())->count(),
         ];
 
-        return Inertia::render('payment/Index', [
+        return Inertia::render('Payment/Index', [
             'payments' => $payments,
             'stats' => $stats,
         ]);
@@ -91,7 +91,7 @@ class PaymentController extends Controller
 
         $user = Auth::user();
 
-        return Inertia::render('payment/Form', [
+        return Inertia::render('Payment/Form', [
             'rental' => $rental->load(['vehicle.owner', 'vehicle.images', 'renter']),
             'availableCredits' => $user->getAvailableCredits(),
             'referralStats' => $user->getReferralStats(),
@@ -114,7 +114,7 @@ class PaymentController extends Controller
 
         $user = Auth::user();
 
-        return Inertia::render('payment/PropertyBookingForm', [
+        return Inertia::render('Payment/PropertyBookingForm', [
             'booking' => $booking->load(['property.owner', 'property.images', 'guest']),
             'availableCredits' => $user->getAvailableCredits(),
             'referralStats' => $user->getReferralStats(),
@@ -357,7 +357,7 @@ class PaymentController extends Controller
             }
         }
 
-        return Inertia::render('payment/Success', [
+        return Inertia::render('Payment/Success', [
             'payment' => $payment,
             'rental' => $rental,
             'booking' => $booking,

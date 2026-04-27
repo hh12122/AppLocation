@@ -32,7 +32,7 @@ class RentalController extends Controller
 
         $rentals = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return Inertia::render('rentals/Index', [
+        return Inertia::render('Rentals/Index', [
             'rentals' => $rentals,
             'filters' => $request->only(['type', 'status']),
         ]);
@@ -69,7 +69,7 @@ class RentalController extends Controller
 
         $vehicle->load(['images', 'owner']);
 
-        return Inertia::render('rentals/Create', [
+        return Inertia::render('Rentals/Create', [
             'vehicle' => $vehicle,
             'startDate' => $request->get('start_date'),
             'endDate' => $request->get('end_date'),
@@ -126,7 +126,7 @@ class RentalController extends Controller
 
         $rental->load(['vehicle.images', 'vehicle.owner', 'renter', 'reviews']);
 
-        return Inertia::render('rentals/Show', [
+        return Inertia::render('Rentals/Show', [
             'rental' => $rental,
             'canReview' => $rental->canBeReviewed() && ! $rental->reviews()->where('reviewer_id', auth()->id())->exists(),
         ]);
@@ -230,7 +230,7 @@ class RentalController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('rentals/MyRentals', [
+        return Inertia::render('Rentals/MyRentals', [
             'rentals' => $rentals,
         ]);
     }
@@ -244,7 +244,7 @@ class RentalController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('rentals/MyBookings', [
+        return Inertia::render('Rentals/MyBookings', [
             'rentals' => $rentals,
         ]);
     }

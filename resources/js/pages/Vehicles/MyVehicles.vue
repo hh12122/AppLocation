@@ -85,6 +85,7 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                         <p class="text-gray-600 mt-2">Gérez vos véhicules mis en location</p>
                     </div>
                     <Link
+                        v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))"
                         :href="route('vehicles.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >
@@ -219,6 +220,7 @@ const getStatusLabel = (status: string, isAvailable: boolean) => {
                         Vous n'avez pas encore ajouté de véhicule. Commencez par ajouter votre premier véhicule pour commencer à gagner de l'argent.
                     </p>
                     <Link
+                        v-if="$page.props.auth.user && ($page.props.auth.user.is_owner || ['proprietaire', 'both'].includes($page.props.auth.user.user_role))"
                         :href="route('vehicles.create')"
                         class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
                     >

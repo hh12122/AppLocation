@@ -232,8 +232,12 @@ class User extends Authenticatable
 
     public function canListProperties(): bool
     {
-        // Development: Simplified validation - just check if user exists
-        return true;
+        return $this->is_owner || in_array($this->user_role, ['proprietaire', 'both']);
+    }
+
+    public function canListVehicles(): bool
+    {
+        return $this->is_owner || in_array($this->user_role, ['proprietaire', 'both']);
 
         // Production version (uncomment for production):
         // return $this->hasValidLicense() && $this->is_verified;
@@ -279,8 +283,7 @@ class User extends Authenticatable
 
     public function canListEquipment(): bool
     {
-        // Development: Simplified validation - just check if user exists
-        return true;
+        return $this->is_owner || in_array($this->user_role, ['proprietaire', 'both']);
 
         // Production version (uncomment for production):
         // return $this->hasValidLicense() && $this->is_verified;
